@@ -1,8 +1,10 @@
 - [Maybe Fix] Encryption tool has await issues?
 
-Make the home page (/) a login page and then set the encryption-tool
-page as /encryption-tool again, then fix the NavMenu.razor
-based on this.
+Have the user sent to a login page (/login) if they aren't logged in,
+this is where they will log in using a username and password that is
+securely stored within a database.
+Elements from the encryption boxes HTML (BootStrap) can be taken
+and reused to create the login box stuff.
 
 The C# program must be password protected,
 requiring the user to enter a username and password first to
