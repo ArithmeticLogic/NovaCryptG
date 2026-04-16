@@ -3,6 +3,10 @@
 ##
 ## Get latest from `dotnet new gitignore`
 
+#Custom
+qodana.yaml
+/NovaCryptG/AppData
+
 # dotenv files
 .env
 
