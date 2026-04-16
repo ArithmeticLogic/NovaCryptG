@@ -1,0 +1,505 @@
+@page "/"
+@rendermode InteractiveServer
+@using NovaCryptG.Services
+@using System.Text
+@inject FileStorageService FileStorage
+@inject IJSRuntime JsRuntime
+
+<PageTitle>NovaCrypt - Encryption Tool</PageTitle>
+
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">
+            Encryption Tool
+        </h1>
+        <p class="lead text-secondary">Secure your text with AES-256 encryption</p>
+        <hr class="my-4 w-50 mx-auto">
+    </div>
+
+    <div class="row g-4">
+        <!-- Text Editor Display -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    Text Editor
+                </div>
+                <div class="card-body">
+                    <textarea @bind="_textContent"
+                              @oninput="OnTextChanged"
+                              rows="12"
+                              class="form-control"
+                              style="resize: none;"
+                              placeholder="Enter or paste text here ..."></textarea>
+                    @if (_isModified)
+                    {
+                        <div class="mt-2 text-warning small">
+                            Unsaved changes
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Encryption Password and Button Display -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent">
+                    Encryption Password
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Password
+                        </label>
+                        <input type="password" @bind="_encryptPassword" @bind:event="oninput" class="form-control" placeholder="Enter password" />
+                        @if (!string.IsNullOrEmpty(_encryptPassword) && _encryptPassword.Length < 8)
+                        {
+                            <div class="text-danger small mt-1">
+                                Password must be at least 8 characters
+                            </div>
+                        }
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Confirm Password
+                        </label>
+                        <input type="password" @bind="_confirmEncryptPassword" @bind:event="oninput" class="form-control" placeholder="Confirm password" />
+                        @if (!string.IsNullOrEmpty(_confirmEncryptPassword) && _encryptPassword != _confirmEncryptPassword)
+                        {
+                            <div class="text-danger small mt-1">
+                                Passwords do not match
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-primary w-100" @onclick="Encrypt" disabled="@(string.IsNullOrEmpty(_textContent) || _encryptPassword != _confirmEncryptPassword || _encryptPassword.Length < 8)">
+                        Encrypt
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Decryption Password and Button Display -->
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent">
+                    Decryption Password
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Password
+                        </label>
+                        <input type="password" @bind="_decryptPassword" @bind:event="oninput" class="form-control" placeholder="Enter password" />
+                        @if (!string.IsNullOrEmpty(_decryptPassword) && _decryptPassword.Length < 8)
+                        {
+                            <div class="text-danger small mt-1">
+                                Password must be at least 8 characters
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-secondary w-100" @onclick="Decrypt" disabled="@(string.IsNullOrEmpty(_textContent) || string.IsNullOrEmpty(_decryptPassword) || !IsBase64String(_textContent))">
+                        Decrypt
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Saved Files Display (with Save, New, Load, Delete) -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-transparent">
+                    Saved Files
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-8 mb-3 mb-md-0">
+                            <select @bind="_selectedFile" class="form-control" size="8" style="min-height: 200px;">
+                                @if (_fileList.Any())
+                                {
+                                    @foreach (var file in _fileList)
+                                    {
+                                        <option value="@file">@file</option>
+                                    }
+                                }
+                                else
+                                {
+                                    <option disabled>No files saved yet</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4 d-flex flex-column">
+                            <div class="d-grid gap-2 flex-grow-1">
+                                <button class="btn btn-success w-100" @onclick="SaveFile" disabled="@(string.IsNullOrEmpty(_textContent))">
+                                    Save File
+                                </button>
+                                <button class="btn btn-info w-100" @onclick="OpenNewConfirmModal">
+                                    New File
+                                </button>
+                                <button class="btn btn-warning w-100" @onclick="LoadFile" disabled="@(string.IsNullOrEmpty(_selectedFile))">
+                                    Load Selected
+                                </button>
+                                <button class="btn btn-danger w-100" @onclick="OpenDeleteConfirmModal" disabled="@(string.IsNullOrEmpty(_selectedFile))">
+                                    Delete Selected
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Universal Modal -->
+<div class="modal fade @(_showModal ? "show d-block" : "")" tabindex="-1" style="@(_showModal ? "display:block;" : "display:none;")" aria-hidden="@(!_showModal)">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@_modalTitle</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                @_modalMessage
+            </div>
+            <div class="modal-footer">
+                @if (!_isInfoOnly)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                }
+                <button type="button" class="btn btn-primary" @onclick="ConfirmAction">@_modalConfirmText</button>
+            </div>
+        </div>
+    </div>
+</div>
+@if (_showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private string _textContent = "";
+    private string _encryptPassword = "";
+    private string _confirmEncryptPassword = "";
+    private string _decryptPassword = "";
+    private List<string?> _fileList = new();
+    private string _selectedFile = "";
+    private bool _isModified;
+    private bool _isEncrypted; // True if current text is base64 (Potentially encrypted)
+
+    // Modal state
+    private bool _showModal;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalConfirmText = "OK";
+    private bool _isInfoOnly = true;
+    private Func<Task>? _onConfirm;
+
+    protected override void OnInitialized()
+    {
+        RefreshFileList();
+    }
+
+    private void RefreshFileList()
+    {
+        _fileList = FileStorage.GetFileList();
+        StateHasChanged();
+    }
+
+    private void OnTextChanged()
+    {
+        _isModified = true;
+        _isEncrypted = false;
+    }
+
+    private void MarkClean()
+    {
+        _isModified = false;
+    }
+
+    private static bool IsBase64String(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return false;
+        s = s.Trim();
+        if (s.Length % 4 != 0) return false;
+        try
+        {
+            Convert.FromBase64String(s);
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // Modal helpers
+    private void OpenModal(string title, string message, string confirmText, Func<Task> confirmAction, bool infoOnly = false)
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalConfirmText = confirmText;
+        _isInfoOnly = infoOnly;
+        _onConfirm = confirmAction;
+        _showModal = true;
+        StateHasChanged();
+    }
+
+    private void ShowMessage(string title, string message)
+    {
+        OpenModal(title, message, "OK", () => Task.CompletedTask, infoOnly: true);
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+        _onConfirm = null;
+        StateHasChanged();
+    }
+
+    private void ConfirmAction()
+    {
+        if (_onConfirm != null)
+            _onConfirm();
+        CloseModal();
+    }
+
+    // New/Clear
+    private void OpenNewConfirmModal()
+    {
+        if (_isModified && !string.IsNullOrEmpty(_textContent))
+        {
+            OpenModal(
+                "Discard Changes?",
+                "You have unsaved changes. Are you sure you want to clear the text?",
+                "Discard", () =>
+                {
+                    ClearTextConfirmed();
+                    return Task.CompletedTask;
+                },
+                infoOnly: false
+            );
+        }
+        else
+        {
+            ClearTextConfirmed();
+        }
+    }
+
+    private void ClearTextConfirmed()
+    {
+        _textContent = "";
+        _isEncrypted = false;
+        _isModified = false;
+        StateHasChanged();
+    }
+
+    // Load File from servers file system
+    private void LoadFile()
+    {
+        if (_isModified && !string.IsNullOrEmpty(_textContent))
+        {
+            OpenModal(
+                "Load File?",
+                "You have unsaved changes. Loading a file will discard them. Continue?",
+                "Load", () => Task.FromResult(PerformLoadFile()),
+                infoOnly: false
+            );
+        }
+        else
+        {
+            PerformLoadFile();
+        }
+    }
+
+    private async Task PerformLoadFile()
+    {
+        try
+        {
+            var content = await FileStorage.LoadFileAsync(_selectedFile);
+            if (!string.IsNullOrEmpty(content))
+            {
+                _textContent = content;
+                _isEncrypted = IsBase64String(content);
+                _isModified = false;
+                ShowMessage("Loaded", $"Loaded {_selectedFile}");
+                StateHasChanged();
+            }
+            else
+            {
+                ShowMessage("Error", " File is empty or could not be loaded.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("Error: Loading", ex.Message);
+        }
+    }
+
+    // Delete File
+    private void OpenDeleteConfirmModal()
+    {
+        OpenModal(
+            "Delete File?",
+            $"Are you sure you want to delete '{_selectedFile}'? This action cannot be undone.",
+            "Delete", () => Task.FromResult(DeleteFileConfirmed()),
+            infoOnly: false
+        );
+    }
+
+    private Task DeleteFileConfirmed()
+    {
+        try
+        {
+            var fileToDelete = _selectedFile;
+            if (string.IsNullOrEmpty(fileToDelete)) return Task.CompletedTask;
+
+            FileStorage.DeleteFile(fileToDelete);
+            ShowMessage("Deleted", $"Deleted {fileToDelete}");
+            RefreshFileList();
+
+            // Clear selected file if it was the one just deleted
+            if (_selectedFile == fileToDelete)
+            {
+                _selectedFile = "";
+            }
+
+            return Task.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("Error: Deleting", ex.Message);
+            return Task.FromException(ex);
+        }
+    }
+
+    // Encryption
+    private async Task Encrypt()
+    {
+        try
+        {
+            byte[] plainBytes = Encoding.UTF8.GetBytes(_textContent);
+            var result = await NovaCryptService.EncryptFileAsync(plainBytes, "temp", _encryptPassword);
+            if (result.Success)
+            {
+                _textContent = Convert.ToBase64String(result.Data);
+                _isEncrypted = true;
+                ShowMessage("Success", "Encryption successful.");
+                MarkClean();
+                StateHasChanged();
+            }
+            else
+            {
+                ShowMessage("Encryption failed", result.Message);
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("Error:", ex.Message);
+        }
+    }
+
+    // Decryption
+    private async Task Decrypt()
+    {
+        try
+        {
+            if (!IsBase64String(_textContent))
+            {
+                ShowMessage("Cannot Decrypt", "The current text is not a valid base64 string. Nothing was changed.");
+                return;
+            }
+
+            byte[] encryptedBytes = Convert.FromBase64String(_textContent);
+            var result = await NovaCryptService.DecryptFileAsync(encryptedBytes, "temp.encrypted", _decryptPassword);
+            if (result.Success)
+            {
+                _textContent = Encoding.UTF8.GetString(result.Data);
+                _isEncrypted = false;
+                ShowMessage("Success", "Decryption successful.");
+                MarkClean();
+                StateHasChanged();
+            }
+            else
+            {
+                ShowMessage("Decryption failed", result.Message);
+            }
+        }
+        catch (FormatException)
+        {
+            ShowMessage("Invalid Format", "The text is not a valid base64 string.");
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("Error:", ex.Message);
+        }
+    }
+
+    // Save files ...
+    private async Task PerformSave()
+    {
+        // Prompt for filename
+        string fileName = await JsRuntime.InvokeAsync<string>("prompt", "Enter a name for the encrypted file (without extension):");
+        if (string.IsNullOrWhiteSpace(fileName))
+        {
+            ShowMessage("Cancelled", "Save cancelled.");
+            return;
+        }
+
+        if (!_isEncrypted && _encryptPassword.Length < 8)
+        {
+            ShowMessage("Invalid Password", "Encryption password must be at least 8 characters.");
+            return;
+        }
+
+        if (!_isEncrypted && _encryptPassword != _confirmEncryptPassword)
+        {
+            ShowMessage("Password Mismatch", "Encryption passwords do not match.");
+            return;
+        }
+
+        // Sanitise: replace spaces with underscores
+        fileName = fileName.Replace(" ", "_");
+        string fullFileName = $"{fileName}.encrypted";
+
+        if (!_isEncrypted)
+        {
+            await Encrypt();
+        }
+
+        if (_isEncrypted)
+        {
+            try
+            {
+                FileStorage.SaveFile(fullFileName, _textContent);
+                ShowMessage("Success", $"File saved as {fullFileName}");
+                MarkClean();
+                RefreshFileList();
+            }
+            catch (Exception ex)
+            {
+                ShowMessage("Error: Saving", ex.Message);
+            }
+        }
+    }
+
+    // Save File
+    private void SaveFile()
+    {
+        if (_isEncrypted)
+        {
+            PerformSave();
+            return;
+        }
+
+        OpenModal(
+            "Save Encrypted",
+            "The text is not encrypted. Please encrypt it before saving.",
+            "Encrypt & Save", () => Task.FromResult(PerformSave()),
+            infoOnly: false
+        );
+    }
+}

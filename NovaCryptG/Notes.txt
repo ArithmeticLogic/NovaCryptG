@@ -1,0 +1,21 @@
+- [Maybe Fix] Encryption tool has await issues?
+
+Make the home page (/) a login page and then set the encryption-tool
+page as /encryption-tool again, then fix the NavMenu.razor
+based on this.
+
+The C# program must be password protected,
+requiring the user to enter a username and password first to
+gain access to the main application,
+where the user's credentials must be contained within an
+SQL database. (DO this for the encryption tool page specifically)
+
+* Camel case
+* Indentation
+* Meaningful variable/function naming conventions
+* Comments where required
+* FIX ALL COMMENTING
+
+- Have meaningful variables/functions.
+- Split them up like input username, check username.
+- Don’t make a single function do too much.
