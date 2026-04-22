@@ -1,5 +1,9 @@
 - [Maybe Fix] Encryption tool has await issues?
 
+// IS THIS REAL CHAT OR IS THIS NOT USED or IS IT JUST HMAC NOT USED???
+    <dt class="col-sm-4">Key Derivation</dt>
+    <dd class="col-sm-8">PBKDF2 with HMAC-SHA256</dd>
+
 Have the user sent to a login page (/login) if they aren't logged in,
 this is where they will log in using a username and password that is
 securely stored within a database.
