@@ -17,6 +17,14 @@ byte[] derivedKey = Rfc2898DeriveBytes.Pbkdf2(password, salt, _iterations, HashA
     <dt class="col-sm-4">Key Derivation</dt>
     <dd class="col-sm-8">PBKDF2 with HMAC-SHA256</dd>
 
+IF username AND hashedPassword = FROM file true THEN
+run page code
+ELSE
+send to login page
+^^^
+This could be a Service file or a function
+Maybe better as a servuce for reusability
+
 Have the user sent to a login page (/login) if they aren't logged in,
 this is where they will log in using a username and password that is
 securely stored within a database.
