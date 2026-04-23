@@ -6,6 +6,8 @@ Basically rewrite the entirety of NovaCryptSerivce.cs to
 my own EncryptionEngine.
 CANT USE using .Cryptography
 
+The encrypt and decrypt functions specifically. So use all of the other code but redo this to something else. Minimum is caeser
+
 Rename NovaCryptService to CryptographyService
 
 // ???[FileStorageService] Make a global variable with fileName being
