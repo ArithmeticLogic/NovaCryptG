@@ -1,5 +1,9 @@
 - [Maybe Fix] Encryption tool has await issues?
 
+// ???[FileStorageService] Make a global variable with fileName being
+// referenced in the actual functions???
+ var fullPath = Path.Combine(_storagePath, fileName);
+
 // IS THIS REAL CHAT OR IS THIS NOT USED or IS IT JUST HMAC NOT USED???
     <dt class="col-sm-4">Key Derivation</dt>
     <dd class="col-sm-8">PBKDF2 with HMAC-SHA256</dd>
