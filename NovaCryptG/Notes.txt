@@ -1,21 +1,18 @@
 - [Maybe Fix] Encryption tool has await issues?
 
+Build encryption engine
+Can't do packages as mine is rn
+Basically rewrite the entirety of NovaCryptSerivce.cs to
+my own EncryptionEngine.
+CANT USE using .Cryptography
+
 Rename NovaCryptService to CryptographyService
 
 // ???[FileStorageService] Make a global variable with fileName being
 // referenced in the actual functions???
  var fullPath = Path.Combine(_storagePath, fileName);
 
-// Maybe make derivedKey 1 global variable
-// IDK FOR SURE IF THIS NEEDS CHANGING
-// PROBABLY NOT
-byte[] derivedKey = Rfc2898DeriveBytes.Pbkdf2(password, salt, _iterations, HashAlgorithmName.SHA256, _outputLength);
-
-// IS THIS REAL CHAT OR IS THIS NOT USED or IS IT JUST HMAC NOT USED???
 // Just remove the entire details page, instead add a comment in the
-// cryptography services code
-    <dt class="col-sm-4">Key Derivation</dt>
-    <dd class="col-sm-8">PBKDF2 with HMAC-SHA256</dd>
 
 IF username AND hashedPassword = FROM file true THEN
 run page code
@@ -30,7 +27,6 @@ this is where they will log in using a username and password that is
 securely stored within a database.
 Elements from the encryption boxes HTML (BootStrap) can be taken
 and reused to create the login box stuff.
-
 
 /// THIS HAS BEEN CHANGED SO NOW THE LOGINS ARE STORED IN A FILE 
 /// ON THE SERVER SIDE, INSTEAD OF A DATABASE.
