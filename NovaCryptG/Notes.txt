@@ -4,6 +4,11 @@
 // referenced in the actual functions???
  var fullPath = Path.Combine(_storagePath, fileName);
 
+// Maybe make derivedKey 1 global variable
+// IDK FOR SURE IF THIS NEEDS CHANGING
+// PROBABLY NOT
+byte[] derivedKey = Rfc2898DeriveBytes.Pbkdf2(password, salt, _iterations, HashAlgorithmName.SHA256, _outputLength);
+
 // IS THIS REAL CHAT OR IS THIS NOT USED or IS IT JUST HMAC NOT USED???
     <dt class="col-sm-4">Key Derivation</dt>
     <dd class="col-sm-8">PBKDF2 with HMAC-SHA256</dd>
