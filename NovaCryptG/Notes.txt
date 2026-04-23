@@ -1,5 +1,7 @@
 - [Maybe Fix] Encryption tool has await issues?
 
+Rename NovaCryptService to CryptographyService
+
 // ???[FileStorageService] Make a global variable with fileName being
 // referenced in the actual functions???
  var fullPath = Path.Combine(_storagePath, fileName);
