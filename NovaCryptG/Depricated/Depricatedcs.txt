@@ -11,7 +11,7 @@ namespace NovaCryptG.Services;
 // MISSING HMAC! // I WONT LOOSE MARKS FOR NOT HAVING THIS
 // If HMAC (or another form of authentication) is not used, then encrypted files lack integrity and authenticity.
 
-public class NovaCryptService
+public class Depricated
 {
     private const int _keySize = 256;
     private const int _blockSize = 128;

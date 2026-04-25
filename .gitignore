@@ -6,7 +6,6 @@
 #Custom
 qodana.yaml
 /NovaCryptG/AppData
-/NovaCryptG/Depricated
 
 # dotenv files
 .env
