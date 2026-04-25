@@ -4,7 +4,7 @@ namespace NovaCryptG.Services;
 
 public class CryptographyService
 {
-    private const int Rounds = 25; // Number of times to repeat each layer
+    private const int _rounds = 25; // Number of times to repeat each layer
 
     // File Operations
     public static async Task<OperationResult> EncryptFileAsync(byte[] fileData, string fileName, string password)
@@ -60,7 +60,7 @@ public class CryptographyService
         return result;
     }
 
-    // Multi layer XOR Cipher with multiple rounds
+    // Multi layer XOR Cipher and bit rotation with multiple rounds
     private static byte[] Cryptography(byte[] data, string password, bool encrypt)
     {
         byte[] result = new byte[data.Length];
@@ -69,7 +69,7 @@ public class CryptographyService
         if (encrypt)
         {
             // Run all layers multiple times (Rounds)
-            for (int round = 0; round < Rounds; round++)
+            for (int round = 0; round < _rounds; round++)
             {
                 // Layer 1: Standard XOR
                 result = StandardXOR(result, password);
@@ -83,14 +83,14 @@ public class CryptographyService
                 // Layer 4: XOR with reversed password
                 result = ReversedPasswordXOR(result, password);
 
-                // Layer 5: Byte Rotation
+                // Layer 5: Bit Rotation
                 result = BitRotation(result, password, true);
             }
         }
         else
         {
             // Decryption applies layers in reverse order for the same number of rounds
-            for (int round = 0; round < Rounds; round++)
+            for (int round = 0; round < _rounds; round++)
             {
                 result = BitRotation(result, password, false);
                 result = ReversedPasswordXOR(result, password);
@@ -177,7 +177,7 @@ public class CryptographyService
         return result;
     }
 
-    // Layer 5: Byte Rotation
+    // Layer 5: Bit Rotation
     private static byte[] BitRotation(byte[] data, string password, bool encrypt)
     {
         byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
