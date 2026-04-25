@@ -12,7 +12,7 @@
         <h1 class="display-5 fw-bold">
             Encryption Tool
         </h1>
-        <p class="lead text-secondary">Secure your text with ... encryption</p>
+        <p class="lead text-secondary">Secure your text</p>
         <hr class="my-4 w-50 mx-auto">
     </div>
 
@@ -382,7 +382,7 @@
         try
         {
             byte[] plainBytes = Encoding.UTF8.GetBytes(_textContent);
-            var result = await NovaCryptService.EncryptFileAsync(plainBytes, "temp", _encryptPassword);
+            var result = await CryptographyService.EncryptFileAsync(plainBytes, "temp", _encryptPassword);
             if (result.Success)
             {
                 _textContent = Convert.ToBase64String(result.Data);
@@ -414,7 +414,7 @@
             }
 
             byte[] encryptedBytes = Convert.FromBase64String(_textContent);
-            var result = await NovaCryptService.DecryptFileAsync(encryptedBytes, "temp.encrypted", _decryptPassword);
+            var result = await CryptographyService.DecryptFileAsync(encryptedBytes, "temp.encrypted", _decryptPassword);
             if (result.Success)
             {
                 _textContent = Encoding.UTF8.GetString(result.Data);

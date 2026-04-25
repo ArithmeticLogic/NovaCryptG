@@ -11,7 +11,7 @@ builder.Services.AddServerSideBlazor(options =>
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-builder.Services.AddScoped<NovaCryptService>();
+builder.Services.AddScoped<CryptographyService>();
 builder.Services.AddScoped<FileStorageService>();
 
 var app = builder.Build();

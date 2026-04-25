@@ -1,22 +1,8 @@
 - [Maybe Fix] Encryption tool has await issues?
 
-Build encryption engine
-Can't do packages as mine is rn
-Basically rewrite the entirety of NovaCryptSerivce.cs to
-my own EncryptionEngine.
-CANT USE using .Cryptography
-
-The EncryptData and DecryptData functions specifically. 
-So use all of the other code but redo this to something else. 
-Minimum is caeser, but its best to do something better.
-
-Rename NovaCryptService to CryptographyService
-
 // ???[FileStorageService] Make a global variable with fileName being
 // referenced in the actual functions???
  var fullPath = Path.Combine(_storagePath, fileName);
-
-// Just remove the entire details page, instead add a comment in the
 
 IF username AND hashedPassword = FROM file true THEN
 run page code
@@ -24,7 +10,7 @@ ELSE
 send to login page
 ^^^
 This could be a Service file or a function
-Maybe better as a servuce for reusability
+Maybe better as a service for reusability
 
 Have the user sent to a login page (/login) if they aren't logged in,
 this is where they will log in using a username and password that is
@@ -32,7 +18,7 @@ securely stored within a database.
 Elements from the encryption boxes HTML (BootStrap) can be taken
 and reused to create the login box stuff.
 
-/// THIS HAS BEEN CHANGED SO NOW THE LOGINS ARE STORED IN A FILE 
+/// THIS HAS BEEN CHANGED SO NOW THE LOGINS ARE STORED IN A FILE
 /// ON THE SERVER SIDE, INSTEAD OF A DATABASE.
 The C# program must be password protected,
 requiring the user to enter a username and password first to
