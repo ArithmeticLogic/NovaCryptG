@@ -7,6 +7,13 @@ public class CryptographyService
     private const int _rounds = 25; // Number of times to repeat each layer
 
     // File Operations
+    public class OperationResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = "";
+        public byte[] Data { get; set; } = Array.Empty<byte>();
+    }
+
     public static async Task<OperationResult> EncryptFileAsync(byte[] fileData, string fileName, string password)
     {
         var result = new OperationResult();
@@ -128,7 +135,8 @@ public class CryptographyService
         for (int i = 0; i < halfIndex; i++)
         {
             result[i] = (byte)(result[i] ^ passwordBytes[(result.Length - 1 - i) % passwordBytes.Length]);
-            result[result.Length - 1 - i] = (byte)(result[result.Length - 1 - i] ^ passwordBytes[i % passwordBytes.Length]);
+            result[result.Length - 1 - i] =
+                (byte)(result[result.Length - 1 - i] ^ passwordBytes[i % passwordBytes.Length]);
         }
 
         return result;
@@ -214,11 +222,4 @@ public class CryptographyService
     {
         return Cryptography(encryptedData, password, false);
     }
-}
-
-public class OperationResult
-{
-    public bool Success { get; set; }
-    public string Message { get; set; } = "";
-    public byte[] Data { get; set; } = Array.Empty<byte>();
 }

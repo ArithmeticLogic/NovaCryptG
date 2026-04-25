@@ -136,13 +136,13 @@
                                 <button class="btn btn-success w-100" @onclick="SaveFile" disabled="@(string.IsNullOrEmpty(_textContent))">
                                     Save File
                                 </button>
-                                <button class="btn btn-info w-100" @onclick="OpenNewConfirmModal">
+                                <button class="btn btn-info w-100" @onclick="NewFile">
                                     New File
                                 </button>
                                 <button class="btn btn-warning w-100" @onclick="LoadFile" disabled="@(string.IsNullOrEmpty(_selectedFile))">
                                     Load Selected
                                 </button>
-                                <button class="btn btn-danger w-100" @onclick="OpenDeleteConfirmModal" disabled="@(string.IsNullOrEmpty(_selectedFile))">
+                                <button class="btn btn-danger w-100" @onclick="DeleteFile" disabled="@(string.IsNullOrEmpty(_selectedFile))">
                                     Delete Selected
                                 </button>
                             </div>
@@ -237,6 +237,7 @@
     }
 
     // Modal helpers
+    // I have decided not to use async/await, due to the modal not closing instantly after a button has been pressed
     private void OpenModal(string title, string message, string confirmText, Func<Task> confirmAction, bool infoOnly = false)
     {
         _modalTitle = title;
@@ -247,19 +248,16 @@
         _showModal = true;
         StateHasChanged();
     }
-
     private void ShowMessage(string title, string message)
     {
         OpenModal(title, message, "OK", () => Task.CompletedTask, infoOnly: true);
     }
-
     private void CloseModal()
     {
         _showModal = false;
         _onConfirm = null;
         StateHasChanged();
     }
-
     private void ConfirmAction()
     {
         if (_onConfirm != null)
@@ -267,120 +265,14 @@
         CloseModal();
     }
 
-    // New/Clear
-    private void OpenNewConfirmModal()
-    {
-        if (_isModified && !string.IsNullOrEmpty(_textContent))
-        {
-            OpenModal(
-                "Discard Changes?",
-                "You have unsaved changes. Are you sure you want to clear the text?",
-                "Discard", () =>
-                {
-                    ClearTextConfirmed();
-                    return Task.CompletedTask;
-                },
-                infoOnly: false
-            );
-        }
-        else
-        {
-            ClearTextConfirmed();
-        }
-    }
-
-    private void ClearTextConfirmed()
-    {
-        _textContent = "";
-        _isEncrypted = false;
-        _isModified = false;
-        StateHasChanged();
-    }
-
-    // Load File from servers file system
-    private void LoadFile()
-    {
-        if (_isModified && !string.IsNullOrEmpty(_textContent))
-        {
-            OpenModal(
-                "Load File?",
-                "You have unsaved changes. Loading a file will discard them. Continue?",
-                "Load", () => Task.FromResult(PerformLoadFile()),
-                infoOnly: false
-            );
-        }
-        else
-        {
-            PerformLoadFile();
-        }
-    }
-
-    private async Task PerformLoadFile()
-    {
-        try
-        {
-            var content = await FileStorage.LoadFileAsync(_selectedFile);
-            if (!string.IsNullOrEmpty(content))
-            {
-                _textContent = content;
-                _isEncrypted = IsBase64String(content);
-                _isModified = false;
-                ShowMessage("Loaded", $"Loaded {_selectedFile}");
-                StateHasChanged();
-            }
-            else
-            {
-                ShowMessage("Error", " File is empty or could not be loaded.");
-            }
-        }
-        catch (Exception ex)
-        {
-            ShowMessage("Error: Loading", ex.Message);
-        }
-    }
-
-    // Delete File
-    private void OpenDeleteConfirmModal()
-    {
-        OpenModal(
-            "Delete File?",
-            $"Are you sure you want to delete '{_selectedFile}'? This action cannot be undone.",
-            "Delete", () => Task.FromResult(DeleteFileConfirmed()),
-            infoOnly: false
-        );
-    }
-
-    private Task DeleteFileConfirmed()
-    {
-        try
-        {
-            var fileToDelete = _selectedFile;
-            if (string.IsNullOrEmpty(fileToDelete)) return Task.CompletedTask;
-
-            FileStorage.DeleteFile(fileToDelete);
-            ShowMessage("Deleted", $"Deleted {fileToDelete}");
-            RefreshFileList();
-
-            // Clear selected file if it was the one just deleted
-            if (_selectedFile == fileToDelete)
-            {
-                _selectedFile = "";
-            }
-
-            return Task.CompletedTask;
-        }
-        catch (Exception ex)
-        {
-            ShowMessage("Error: Deleting", ex.Message);
-            return Task.FromException(ex);
-        }
-    }
-
     // Encryption
     private async Task Encrypt()
     {
         try
         {
+            // Base64 could be checked here. However, the user might want to encrypt Base64.
+            // This just means that the user can encrypt an already encrypted text.
+
             byte[] plainBytes = Encoding.UTF8.GetBytes(_textContent);
             var result = await CryptographyService.EncryptFileAsync(plainBytes, "temp", _encryptPassword);
             if (result.Success)
@@ -396,6 +288,7 @@
                 ShowMessage("Encryption failed", result.Message);
             }
         }
+        // [Maybe] Potentially add another catch here
         catch (Exception ex)
         {
             ShowMessage("Error:", ex.Message);
@@ -438,8 +331,27 @@
         }
     }
 
-    // Save files ...
-    private async Task PerformSave()
+    // Save File
+    private void SaveFile()
+    {
+        if (_isEncrypted)
+        {
+            PerformSaveFile();
+        }
+        else
+        {
+            OpenModal(
+                "Save Encrypted",
+                "The text is not encrypted. Please encrypt it before saving.",
+                "Encrypt & Save",
+                () => {
+                    PerformSaveFile();
+                    return Task.CompletedTask;
+                }
+            );
+        }
+    }
+    private async Task PerformSaveFile()
     {
         // Prompt for filename
         string fileName = await JsRuntime.InvokeAsync<string>("prompt", "Enter a name for the encrypted file (without extension):");
@@ -474,7 +386,7 @@
         {
             try
             {
-                FileStorage.SaveFile(fullFileName, _textContent);
+                await FileStorage.SaveFileAsync(fullFileName, _textContent);
                 ShowMessage("Success", $"File saved as {fullFileName}");
                 MarkClean();
                 RefreshFileList();
@@ -486,20 +398,111 @@
         }
     }
 
-    // Save File
-    private void SaveFile()
+    // New file/Clear text
+    private void NewFile()
     {
-        if (_isEncrypted)
+        if (_isModified && !string.IsNullOrEmpty(_textContent))
         {
-            PerformSave();
-            return;
+            OpenModal(
+                "Discard Changes?",
+                "You have unsaved changes. Are you sure you want to clear the text?",
+                "Discard",
+                () => {
+                    PerformNewFile();
+                    return Task.CompletedTask;
+                }
+            );
         }
+        else
+        {
+            PerformNewFile();
+        }
+    }
+    private void PerformNewFile()
+    {
+        _textContent = "";
+        _isEncrypted = false;
+        _isModified = false;
+        StateHasChanged();
+    }
 
+    // Load File from servers file system
+    private void LoadFile()
+    {
+        if (_isModified && !string.IsNullOrEmpty(_textContent))
+        {
+            OpenModal(
+                "Load File?",
+                "You have unsaved changes. Loading a file will discard them. Continue?",
+                "Load",
+                () => {
+                    PerformLoadFile();
+                    return Task.CompletedTask;
+                }
+            );
+        }
+        else
+        {
+            PerformLoadFile();
+        }
+    }
+    private async Task PerformLoadFile()
+    {
+        try
+        {
+            var content = await FileStorage.LoadFileAsync(_selectedFile);
+            if (!string.IsNullOrEmpty(content))
+            {
+                _textContent = content;
+                _isEncrypted = IsBase64String(content);
+                _isModified = false;
+                ShowMessage("Loaded", $"Loaded {_selectedFile}");
+                StateHasChanged();
+            }
+            else
+            {
+                ShowMessage("Error", " File is empty or could not be loaded.");
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("Error: Loading", ex.Message);
+        }
+    }
+
+    // Delete File
+    private void DeleteFile()
+    {
         OpenModal(
-            "Save Encrypted",
-            "The text is not encrypted. Please encrypt it before saving.",
-            "Encrypt & Save", () => Task.FromResult(PerformSave()),
-            infoOnly: false
+            "Delete File?",
+            $"Are you sure you want to delete '{_selectedFile}'? This action cannot be undone.",
+            "Delete",
+            () => {
+                PerformDeleteFile();
+                return Task.CompletedTask;
+            }
         );
+    }
+    private void PerformDeleteFile()
+    {
+        try
+        {
+            var fileToDelete = _selectedFile;
+            if (string.IsNullOrEmpty(fileToDelete)) return;
+
+            FileStorage.DeleteFile(fileToDelete);
+            ShowMessage("Deleted", $"Deleted {fileToDelete}");
+            RefreshFileList();
+
+            // Clear selected file if it was the one just deleted
+            if (_selectedFile == fileToDelete)
+            {
+                _selectedFile = "";
+            }
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("Error: Deleting", ex.Message);
+        }
     }
 }

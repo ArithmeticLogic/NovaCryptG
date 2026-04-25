@@ -12,30 +12,6 @@ public class FileStorageService
             Directory.CreateDirectory(_storagePath);
     }
 
-    // This saves to a servers file system
-    public void SaveFile(string fileName, string content)
-    {
-        var fullPath = Path.Combine(_storagePath, fileName);
-        File.WriteAllTextAsync(fullPath, content);
-    }
-
-    // Deletion of file
-    public void DeleteFile(string fileName)
-    {
-        var fullPath = Path.Combine(_storagePath, fileName);
-        if (File.Exists(fullPath))
-            File.Delete(fullPath);
-    }
-
-    // Loading of a file
-    public async Task<string> LoadFileAsync(string fileName)
-    {
-        var fullPath = Path.Combine(_storagePath, fileName);
-        if (File.Exists(fullPath))
-            return await File.ReadAllTextAsync(fullPath);
-        return string.Empty;
-    }
-
     // Getting file list
     public List<string?> GetFileList()
     {
@@ -44,5 +20,29 @@ public class FileStorageService
             .Select(Path.GetFileName)
             .OrderByDescending(f => f)
             .ToList();
+    }
+
+    // This saves to a servers file system
+    public async Task SaveFileAsync(string fileName, string content)
+    {
+        var fullPath = Path.Combine(_storagePath, fileName);
+        await File.WriteAllTextAsync(fullPath, content);
+    }
+
+    // Loading a file from the servers file system
+    public async Task<string> LoadFileAsync(string fileName)
+    {
+        var fullPath = Path.Combine(_storagePath, fileName);
+        if (File.Exists(fullPath))
+            return await File.ReadAllTextAsync(fullPath);
+        return string.Empty;
+    }
+
+    // Deletion of file from the servers file system
+    public void DeleteFile(string fileName)
+    {
+        var fullPath = Path.Combine(_storagePath, fileName);
+        if (File.Exists(fullPath))
+            File.Delete(fullPath);
     }
 }
