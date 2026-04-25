@@ -69,6 +69,16 @@ public class CryptographyService
     }
 
     // Multi layer XOR Cipher and bit rotation with multiple rounds
+    private static byte[] EncryptData(byte[] data, string password)
+    {
+        return Cryptography(data, password, true);
+    }
+
+    private static byte[] DecryptData(byte[] encryptedData, string password)
+    {
+        return Cryptography(encryptedData, password, false);
+    }
+
     private static byte[] Cryptography(byte[] data, string password, bool encrypt)
     {
         byte[] result = new byte[data.Length];
@@ -212,15 +222,5 @@ public class CryptographyService
         }
 
         return result;
-    }
-
-    private static byte[] EncryptData(byte[] data, string password)
-    {
-        return Cryptography(data, password, true);
-    }
-
-    private static byte[] DecryptData(byte[] encryptedData, string password)
-    {
-        return Cryptography(encryptedData, password, false);
     }
 }
