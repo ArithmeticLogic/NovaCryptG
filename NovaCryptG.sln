@@ -2,6 +2,8 @@
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NovaCryptG", "NovaCryptG\NovaCryptG.csproj", "{34A66386-1116-49E7-BE8E-14814360EF12}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "YourApp.Tests", "..\EncryptionAppTesting\YourApp.Tests\YourApp.Tests.csproj", "{AB2715F6-A179-459F-AA19-8B2ADB67DED2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -12,5 +14,9 @@ Global
 		{34A66386-1116-49E7-BE8E-14814360EF12}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{34A66386-1116-49E7-BE8E-14814360EF12}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{34A66386-1116-49E7-BE8E-14814360EF12}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AB2715F6-A179-459F-AA19-8B2ADB67DED2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AB2715F6-A179-459F-AA19-8B2ADB67DED2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AB2715F6-A179-459F-AA19-8B2ADB67DED2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AB2715F6-A179-459F-AA19-8B2ADB67DED2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal
