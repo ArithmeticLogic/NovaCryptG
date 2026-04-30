@@ -3,10 +3,11 @@ using System.IO;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
-using moq;
+using Moq;
 using NovaCryptG.Services;
+using Xunit;
 
-namespace UnitTest1.Tests
+namespace NovaCryptG.Tests
 {
     // ------------------------------------------------------------------
     // Tests for CryptographyService (static methods)
