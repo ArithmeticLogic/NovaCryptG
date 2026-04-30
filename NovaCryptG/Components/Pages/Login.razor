@@ -1,0 +1,41 @@
+@page "/Login"
+@rendermode InteractiveServer
+@using NovaCryptG.Services
+
+<PageTitle>NovaCrypt - Login</PageTitle>
+
+<div class="container py-4">
+    <!-- Login Password input, and Button Display -->
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header bg-transparent">
+                    Login
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
+                            Password
+                        </label>
+                        <input type="password" @bind="_loginPassword" @bind:event="oninput" class="form-control" placeholder="Enter password" />
+                        @if (!string.IsNullOrEmpty(_loginPassword) && _loginPassword.Length < 8)
+                        {
+                            <div class="text-danger small mt-1">
+                                Password must be at least 8 characters
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent"> <!-- @onclick="Login" -->
+                    <button class="btn btn-secondary w-100"    disabled="@(string.IsNullOrEmpty(_loginPassword))">
+                        Login
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string _loginPassword = "";
+}
