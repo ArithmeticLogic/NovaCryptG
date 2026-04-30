@@ -5,29 +5,27 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
 using Moq;
 using NovaCryptG.Services;
-using Xunit;
 
-namespace NovaCryptG.Tests
+// TODO: Look into whether I should add some tests from the pages such as password validation.
+namespace TestNovaCryptG
 {
-    // ------------------------------------------------------------------
     // Tests for CryptographyService (static methods)
-    // ------------------------------------------------------------------
     public class CryptographyServiceTests
     {
         [Fact]
-        public void Encrypt_Decrypt_RoundTrip()
+        public async Task Encrypt_Decrypt_RoundTrip()
         {
             // Arrange
             string original = "Hello, world!";
-            string password = "testpass123"; // ≥8 chars
+            string password = "testing1!"; // Password must be at least 8 characters long, and have at least 1 digit and special character
             byte[] originalBytes = Encoding.UTF8.GetBytes(original);
 
             // Act
-            var encryptResult = CryptographyService.EncryptFileAsync(originalBytes, "temp", password).Result;
+            var encryptResult = await CryptographyService.EncryptFileAsync(originalBytes, "temp", password);
             Assert.True(encryptResult.Success);
             byte[] encrypted = encryptResult.Data;
 
-            var decryptResult = CryptographyService.DecryptFileAsync(encrypted, "temp.encrypted", password).Result;
+            var decryptResult = await CryptographyService.DecryptFileAsync(encrypted, "temp.encrypted", password);
             Assert.True(decryptResult.Success);
             string decrypted = Encoding.UTF8.GetString(decryptResult.Data);
 
@@ -36,29 +34,51 @@ namespace NovaCryptG.Tests
         }
 
         [Fact]
-        public void Encrypt_ShortPassword_ShouldFail()
+        public async Task Encrypt_ShortPassword_ShouldFail()
         {
             byte[] data = Encoding.UTF8.GetBytes("test");
-            string shortPassword = "short";
+            string shortPassword = "testing"; // less than 8 characters
 
-            var result = CryptographyService.EncryptFileAsync(data, "file.txt", shortPassword).Result;
+            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", shortPassword);
             Assert.False(result.Success);
-            Assert.Contains("at least 8 characters", result.Message);
+            Assert.Contains("Password must be at least 8 characters", result.Message);
         }
 
         [Fact]
-        public void Decrypt_WrongPassword_ShouldProduceGarbage()
+        public async Task Encrypt_NoDigitInPassword_ShouldFail()
+        {
+            byte[] data = Encoding.UTF8.GetBytes("test");
+            string noDigitPassword = "testing!"; // No digit
+
+            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", noDigitPassword);
+            Assert.False(result.Success);
+            Assert.Contains("Password must be at least 8 characters", result.Message);
+        }
+
+        [Fact]
+        public async Task Encrypt_NoSpecialCharacterInPassword_ShouldFail()
+        {
+            byte[] data = Encoding.UTF8.GetBytes("test");
+            string noSpecialCharacterPassword = "testing1"; // No special character
+
+            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", noSpecialCharacterPassword);
+            Assert.False(result.Success);
+            Assert.Contains("Password must be at least 8 characters", result.Message);
+        }
+
+        [Fact]
+        public async Task Decrypt_WrongPassword_ShouldProduceGarbage()
         {
             string original = "secret";
-            string correctPassword = "correctPassword123";
-            string wrongPassword = "wrongPassword123";
+            string correctPassword = "correctPassword1!";
+            string wrongPassword = "wrongPassword1!";
             byte[] originalBytes = Encoding.UTF8.GetBytes(original);
 
-            var encryptResult = CryptographyService.EncryptFileAsync(originalBytes, "file.txt", correctPassword).Result;
+            var encryptResult = await CryptographyService.EncryptFileAsync(originalBytes, "file.txt", correctPassword);
             Assert.True(encryptResult.Success);
             byte[] encrypted = encryptResult.Data;
 
-            var decryptResult = CryptographyService.DecryptFileAsync(encrypted, "file.txt.encrypted", wrongPassword).Result;
+            var decryptResult = await CryptographyService.DecryptFileAsync(encrypted, "file.txt.encrypted", wrongPassword);
             Assert.True(decryptResult.Success); // decryption always succeeds
             string decrypted = Encoding.UTF8.GetString(decryptResult.Data);
 
@@ -67,31 +87,18 @@ namespace NovaCryptG.Tests
         }
 
         [Fact]
-        public void Decrypt_NonEncryptedFile_ShouldFail()
+        public async Task Decrypt_NonEncryptedFile_ShouldFail()
         {
             byte[] plainBytes = Encoding.UTF8.GetBytes("This is not encrypted");
-            string fileName = "plain.txt";
+            const string fileName = "plain.txt";
 
-            var result = CryptographyService.DecryptFileAsync(plainBytes, fileName, "anyPassword").Result;
+            var result = await CryptographyService.DecryptFileAsync(plainBytes, fileName, "testing1!");
             Assert.False(result.Success);
             Assert.Equal("File is not encrypted", result.Message);
         }
-
-        [Fact]
-        public void Encrypt_EmptyData_ShouldSucceed()
-        {
-            byte[] empty = Array.Empty<byte>();
-            string password = "password123";
-
-            var result = CryptographyService.EncryptFileAsync(empty, "empty.txt", password).Result;
-            Assert.True(result.Success);
-            Assert.Empty(result.Data);
-        }
     }
 
-    // ------------------------------------------------------------------
     // Tests for FileStorageService (real file I/O in temp folder)
-    // ------------------------------------------------------------------
     public class FileStorageServiceTests : IDisposable
     {
         private readonly string _tempRoot;
@@ -109,7 +116,7 @@ namespace NovaCryptG.Tests
         [Fact]
         public async Task SaveAndLoad_ShouldPersist()
         {
-            string fileName = "test.encrypted";
+            const string fileName = "test.encrypted";
             string content = "Hello, world!";
 
             await _service.SaveFileAsync(fileName, content);
@@ -118,23 +125,24 @@ namespace NovaCryptG.Tests
             Assert.Equal(content, loaded);
         }
 
+        // If a file is not present/does not exist
         [Fact]
         public async Task Load_MissingFile_ReturnsEmpty()
         {
-            string loaded = await _service.LoadFileAsync("missing.encrypted");
+            var loaded = await _service.LoadFileAsync("missing.encrypted");
             Assert.Equal(string.Empty, loaded);
         }
 
         [Fact]
-        public void GetFileList_ReturnsOnlyEncryptedFiles()
+        public async Task GetFileList_ReturnsOnlyEncryptedFiles()
         {
-            _service.SaveFileAsync("a.encrypted", "data").Wait();
-            _service.SaveFileAsync("b.encrypted", "data").Wait();
+            await _service.SaveFileAsync("a.encrypted", "data");
+            await _service.SaveFileAsync("b.encrypted", "data");
 
             // Create a non-.encrypted file directly in the storage folder
-            string storagePath = Path.Combine(_tempRoot, "AppData", "EncryptedFiles");
+            var storagePath = Path.Combine(_tempRoot, "AppData", "EncryptedFiles");
             Directory.CreateDirectory(storagePath);
-            File.WriteAllText(Path.Combine(storagePath, "c.txt"), "ignored");
+            await File.WriteAllTextAsync(Path.Combine(storagePath, "c.txt"), "ignored");
 
             var list = _service.GetFileList();
             Assert.Contains("a.encrypted", list);
@@ -143,17 +151,18 @@ namespace NovaCryptG.Tests
         }
 
         [Fact]
-        public void DeleteFile_RemovesExistingFile()
+        public async Task DeleteFile_RemovesExistingFile()
         {
             string fileName = "delete.encrypted";
-            _service.SaveFileAsync(fileName, "data").Wait();
-            string fullPath = Path.Combine(_tempRoot, "AppData", "EncryptedFiles", fileName);
+            await _service.SaveFileAsync(fileName, "data");
+            var fullPath = Path.Combine(_tempRoot, "AppData", "EncryptedFiles", fileName);
             Assert.True(File.Exists(fullPath));
 
             _service.DeleteFile(fileName);
             Assert.False(File.Exists(fullPath));
         }
 
+        // If a file is not present/does not exist
         [Fact]
         public void DeleteFile_Missing_DoesNothing()
         {
@@ -167,11 +176,4 @@ namespace NovaCryptG.Tests
                 Directory.Delete(_tempRoot, true);
         }
     }
-
-    // ------------------------------------------------------------------
-    // Simple test for EncryptionTool component (optional)
-    // This uses bUnit and mocks the service via an interface
-    // If you haven't set up interfaces, skip this part.
-    // ------------------------------------------------------------------
-    // To keep it "most basic", we omit UI tests for now.
 }

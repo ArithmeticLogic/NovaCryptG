@@ -1,8 +1,9 @@
 @page "/"
 @rendermode InteractiveServer
-@using NovaCryptG.Services
 @using System.Text
+@using NovaCryptG.Services
 @inject FileStorageService FileStorage
+@inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
 
 <PageTitle>NovaCrypt - Encryption Tool</PageTitle>
@@ -52,10 +53,22 @@
                             Password
                         </label>
                         <input type="password" @bind="_encryptPassword" @bind:event="oninput" class="form-control" placeholder="Enter password" />
-                        @if (!string.IsNullOrEmpty(_encryptPassword) && _encryptPassword.Length < 8)
+                        @if (!string.IsNullOrWhiteSpace(_encryptPassword) && _encryptPassword.Length < 8)
                         {
                             <div class="text-danger small mt-1">
-                                Password must be at least 8 characters
+                                Password must be at least 8 characters long
+                            </div>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(_encryptPassword) && _encryptPassword.Length >= 8 && (!_encryptPassword.Any(char.IsDigit)))
+                        {
+                            <div class="text-danger small mt-1">
+                                Password requires at least 1 digit
+                            </div>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(_encryptPassword) && _encryptPassword.Length >= 8 && !_encryptPassword.Any(c => !char.IsLetterOrDigit(c)))
+                        {
+                            <div class="text-danger small mt-1">
+                                Password requires at least 1 special character
                             </div>
                         }
                     </div>
@@ -64,7 +77,7 @@
                             Confirm Password
                         </label>
                         <input type="password" @bind="_confirmEncryptPassword" @bind:event="oninput" class="form-control" placeholder="Confirm password" />
-                        @if (!string.IsNullOrEmpty(_confirmEncryptPassword) && _encryptPassword != _confirmEncryptPassword)
+                        @if (!string.IsNullOrWhiteSpace(_confirmEncryptPassword) && _encryptPassword != _confirmEncryptPassword)
                         {
                             <div class="text-danger small mt-1">
                                 Passwords do not match
@@ -73,7 +86,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-primary w-100" @onclick="Encrypt" disabled="@(string.IsNullOrEmpty(_textContent) || _encryptPassword != _confirmEncryptPassword || _encryptPassword.Length < 8)">
+                    <button class="btn btn-primary w-100" @onclick="Encrypt" disabled="@(_encryptPassword != _confirmEncryptPassword || string.IsNullOrWhiteSpace(_encryptPassword) || _encryptPassword.Length < 8 || !_encryptPassword.Any(char.IsDigit) || !_encryptPassword.Any(c => !char.IsLetterOrDigit(c)) || string.IsNullOrWhiteSpace(_textContent))">
                         Encrypt
                     </button>
                 </div>
@@ -92,16 +105,28 @@
                             Password
                         </label>
                         <input type="password" @bind="_decryptPassword" @bind:event="oninput" class="form-control" placeholder="Enter password" />
-                        @if (!string.IsNullOrEmpty(_decryptPassword) && _decryptPassword.Length < 8)
+                        @if (!string.IsNullOrWhiteSpace(_decryptPassword) && _decryptPassword.Length < 8)
                         {
                             <div class="text-danger small mt-1">
-                                Password must be at least 8 characters
+                                Password must be at least 8 characters long
+                            </div>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(_decryptPassword) && _decryptPassword.Length >= 8 && (!_decryptPassword.Any(char.IsDigit)))
+                        {
+                            <div class="text-danger small mt-1">
+                                Password requires at least 1 digit
+                            </div>
+                        }
+                        else if (!string.IsNullOrWhiteSpace(_decryptPassword) && _decryptPassword.Length >= 8 && !_decryptPassword.Any(c => !char.IsLetterOrDigit(c)))
+                        {
+                            <div class="text-danger small mt-1">
+                                Password requires at least 1 special character
                             </div>
                         }
                     </div>
                 </div>
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-secondary w-100" @onclick="Decrypt" disabled="@(string.IsNullOrEmpty(_textContent) || string.IsNullOrEmpty(_decryptPassword) || !IsBase64String(_textContent))">
+                    <button class="btn btn-secondary w-100" @onclick="Decrypt" disabled="@(string.IsNullOrWhiteSpace(_decryptPassword) || _decryptPassword.Length < 8 || !_decryptPassword.Any(char.IsDigit) || !_decryptPassword.Any(c => !char.IsLetterOrDigit(c)) || string.IsNullOrWhiteSpace(_textContent))">
                         Decrypt
                     </button>
                 </div>
@@ -133,7 +158,7 @@
                         </div>
                         <div class="col-md-4 d-flex flex-column">
                             <div class="d-grid gap-2 flex-grow-1">
-                                <button class="btn btn-success w-100" @onclick="SaveFile" disabled="@(string.IsNullOrEmpty(_textContent))">
+                                <button class="btn btn-success w-100" @onclick="SaveFile" disabled="@(string.IsNullOrWhiteSpace(_textContent))">
                                     Save File
                                 </button>
                                 <button class="btn btn-info w-100" @onclick="NewFile">
@@ -170,7 +195,7 @@
                 {
                     <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
                 }
-                <button type="button" class="btn btn-primary" @onclick="ConfirmAction">@_modalConfirmText</button>
+                <button type="button" class="btn btn-primary" @onclick="ConfirmModalAction">@_modalConfirmText</button>
             </div>
         </div>
     </div>
@@ -181,14 +206,16 @@
 }
 
 @code {
-    private string _textContent = "";
-    private string _encryptPassword = "";
-    private string _confirmEncryptPassword = "";
-    private string _decryptPassword = "";
     private List<string?> _fileList = new();
     private string _selectedFile = "";
     private bool _isModified;
     private bool _isEncrypted; // True if current text is base64 (Potentially encrypted)
+
+    // Text and password input
+    private string _textContent = "";
+    private string _encryptPassword = "";
+    private string _confirmEncryptPassword = "";
+    private string _decryptPassword = "";
 
     // Modal state
     private bool _showModal;
@@ -223,7 +250,7 @@
     private static bool IsBase64String(string s)
     {
         if (string.IsNullOrEmpty(s)) return false;
-        s = s.Trim();
+        s = s.Trim(); // string
         if (s.Length % 4 != 0) return false;
         try
         {
@@ -248,22 +275,27 @@
         _showModal = true;
         StateHasChanged();
     }
+
     private void ShowMessage(string title, string message)
     {
         OpenModal(title, message, "OK", () => Task.CompletedTask, infoOnly: true);
     }
+
     private void CloseModal()
     {
         _showModal = false;
         _onConfirm = null;
         StateHasChanged();
     }
-    private void ConfirmAction()
+
+    private void ConfirmModalAction()
     {
         if (_onConfirm != null)
             _onConfirm();
         CloseModal();
     }
+
+    // TODO: Login stuff (Service Probably) (Check Login.razor for more details)
 
     // Encryption
     private async Task Encrypt()
@@ -279,7 +311,7 @@
             {
                 _textContent = Convert.ToBase64String(result.Data);
                 _isEncrypted = true;
-                ShowMessage("Success", "Encryption successful.");
+                ShowMessage("Encryption", "Encryption successful.");
                 MarkClean();
                 StateHasChanged();
             }
@@ -288,10 +320,9 @@
                 ShowMessage("Encryption failed", result.Message);
             }
         }
-        // [Maybe] Potentially add another catch here
         catch (Exception ex)
         {
-            ShowMessage("Error:", ex.Message);
+            ShowMessage("Error: Encrypting", ex.Message);
         }
     }
 
@@ -312,7 +343,7 @@
             {
                 _textContent = Encoding.UTF8.GetString(result.Data);
                 _isEncrypted = false;
-                ShowMessage("Success", "Decryption successful.");
+                ShowMessage("Decryption", "Decryption attempted.");
                 MarkClean();
                 StateHasChanged();
             }
@@ -321,13 +352,9 @@
                 ShowMessage("Decryption failed", result.Message);
             }
         }
-        catch (FormatException)
-        {
-            ShowMessage("Invalid Format", "The text is not a valid base64 string.");
-        }
         catch (Exception ex)
         {
-            ShowMessage("Error:", ex.Message);
+            ShowMessage("Error: Decrypting", ex.Message);
         }
     }
 
@@ -344,13 +371,41 @@
                 "Save Encrypted",
                 "The text is not encrypted. Please encrypt it before saving.",
                 "Encrypt & Save",
-                () => {
+                () =>
+                {
                     PerformSaveFile();
                     return Task.CompletedTask;
                 }
             );
         }
     }
+
+    private void EncryptionPasswordValidation()
+    {
+        if (!_isEncrypted && _encryptPassword.Length < 8)
+        {
+            ShowMessage("Invalid Password", "Encryption password must be at least 8 characters long.");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_encryptPassword) && _encryptPassword.Length >= 8 && (!_encryptPassword.Any(char.IsDigit)))
+        {
+            ShowMessage("Invalid Password", "Encryption password requires at least 1 digit");
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(_encryptPassword) && _encryptPassword.Length >= 8 && !_encryptPassword.Any(c => !char.IsLetterOrDigit(c)))
+        {
+            ShowMessage("Invalid Password", "Encryption password requires at least 1 special character");
+            return;
+        }
+
+        if (!_isEncrypted && _encryptPassword != _confirmEncryptPassword)
+        {
+            ShowMessage("Password Mismatch", "Encryption passwords do not match.");
+        }
+    }
+
     private async Task PerformSaveFile()
     {
         // Prompt for filename
@@ -361,17 +416,7 @@
             return;
         }
 
-        if (!_isEncrypted && _encryptPassword.Length < 8)
-        {
-            ShowMessage("Invalid Password", "Encryption password must be at least 8 characters.");
-            return;
-        }
-
-        if (!_isEncrypted && _encryptPassword != _confirmEncryptPassword)
-        {
-            ShowMessage("Password Mismatch", "Encryption passwords do not match.");
-            return;
-        }
+        EncryptionPasswordValidation();
 
         // Sanitise: replace spaces with underscores
         fileName = fileName.Replace(" ", "_");
@@ -382,32 +427,35 @@
             await Encrypt();
         }
 
-        if (_isEncrypted)
+        try
         {
-            try
-            {
-                await FileStorage.SaveFileAsync(fullFileName, _textContent);
-                ShowMessage("Success", $"File saved as {fullFileName}");
-                MarkClean();
-                RefreshFileList();
-            }
-            catch (Exception ex)
-            {
-                ShowMessage("Error: Saving", ex.Message);
-            }
+            await FileStorage.SaveFileAsync(fullFileName, _textContent);
+            ShowMessage($"File {fullFileName}", $"File saved as {fullFileName}");
+            MarkClean();
+            RefreshFileList();
+        }
+        // Error when disk space is full, folder is inaccessible, etc
+        catch (IOException ex)
+        {
+            ShowMessage("Error: Saving", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            ShowMessage("Error: Saving", ex.Message);
         }
     }
 
     // New file/Clear text
     private void NewFile()
     {
-        if (_isModified && !string.IsNullOrEmpty(_textContent))
+        if (_isModified && !string.IsNullOrWhiteSpace(_textContent))
         {
             OpenModal(
                 "Discard Changes?",
                 "You have unsaved changes. Are you sure you want to clear the text?",
                 "Discard",
-                () => {
+                () =>
+                {
                     PerformNewFile();
                     return Task.CompletedTask;
                 }
@@ -418,6 +466,7 @@
             PerformNewFile();
         }
     }
+
     private void PerformNewFile()
     {
         _textContent = "";
@@ -429,13 +478,14 @@
     // Load File from servers file system
     private void LoadFile()
     {
-        if (_isModified && !string.IsNullOrEmpty(_textContent))
+        if (_isModified && !string.IsNullOrWhiteSpace(_textContent))
         {
             OpenModal(
                 "Load File?",
                 "You have unsaved changes. Loading a file will discard them. Continue?",
                 "Load",
-                () => {
+                () =>
+                {
                     PerformLoadFile();
                     return Task.CompletedTask;
                 }
@@ -446,6 +496,7 @@
             PerformLoadFile();
         }
     }
+
     private async Task PerformLoadFile()
     {
         try
@@ -464,6 +515,11 @@
                 ShowMessage("Error", " File is empty or could not be loaded.");
             }
         }
+        // Error when disk space is full, folder is inaccessible, etc
+        catch (IOException ex)
+        {
+            ShowMessage("Error: Loading", ex.Message);
+        }
         catch (Exception ex)
         {
             ShowMessage("Error: Loading", ex.Message);
@@ -477,12 +533,14 @@
             "Delete File?",
             $"Are you sure you want to delete '{_selectedFile}'? This action cannot be undone.",
             "Delete",
-            () => {
+            () =>
+            {
                 PerformDeleteFile();
                 return Task.CompletedTask;
             }
         );
     }
+
     private void PerformDeleteFile()
     {
         try
@@ -499,6 +557,11 @@
             {
                 _selectedFile = "";
             }
+        }
+        // Error when disk space is full, folder is inaccessible, etc
+        catch (IOException ex)
+        {
+            ShowMessage("Error: Deleting", ex.Message);
         }
         catch (Exception ex)
         {

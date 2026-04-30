@@ -1,13 +1,14 @@
 @page "/Login"
 @rendermode InteractiveServer
+@inject NavigationManager NavigationManager
 @using NovaCryptG.Services
 
 <PageTitle>NovaCrypt - Login</PageTitle>
 
 <div class="container py-4">
-    <!-- Login Password input, and Button Display -->
+    <!-- Login username and password input, and Button Display -->
     <div class="row justify-content-center">
-        <div class="col-md-6">
+        <div class="col-md-7">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-transparent">
                     Login
@@ -15,19 +16,19 @@
                 <div class="card-body">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">
+                            Username
+                        </label>
+                        <input type="text" @bind="_loginUsername" @bind:event="oninput" class="form-control" placeholder="Enter username" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">
                             Password
                         </label>
                         <input type="password" @bind="_loginPassword" @bind:event="oninput" class="form-control" placeholder="Enter password" />
-                        @if (!string.IsNullOrEmpty(_loginPassword) && _loginPassword.Length < 8)
-                        {
-                            <div class="text-danger small mt-1">
-                                Password must be at least 8 characters
-                            </div>
-                        }
                     </div>
                 </div>
-                <div class="card-footer bg-transparent"> <!-- @onclick="Login" -->
-                    <button class="btn btn-primary w-100"    disabled="@(string.IsNullOrEmpty(_loginPassword))">
+                <div class="card-footer bg-transparent">
+                    <button class="btn btn-primary w-100" @onclick="UserLogin">
                         Login
                     </button>
                 </div>
@@ -36,6 +37,104 @@
     </div>
 </div>
 
+<!-- Universal Modal -->
+<div class="modal fade @(_showModal ? "show d-block" : "")" tabindex="-1" style="@(_showModal ? "display:block;" : "display:none;")" aria-hidden="@(!_showModal)">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@_modalTitle</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                @_modalMessage
+            </div>
+            <div class="modal-footer">
+                @if (!_isInfoOnly)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                }
+                <button type="button" class="btn btn-primary" @onclick="ConfirmModalAction">@_modalConfirmText</button>
+            </div>
+        </div>
+    </div>
+</div>
+@if (_showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
 @code {
+    private string _loginUsername = "";
     private string _loginPassword = "";
+
+    // Modal state
+    private bool _showModal;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalConfirmText = "OK";
+    private bool _isInfoOnly = true;
+    private Func<Task>? _onConfirm;
+
+    // Modal helpers
+    // I have decided not to use async/await, due to the modal not closing instantly after a button has been pressed
+    private void OpenModal(string title, string message, string confirmText, Func<Task> confirmAction, bool infoOnly = false)
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalConfirmText = confirmText;
+        _isInfoOnly = infoOnly;
+        _onConfirm = confirmAction;
+        _showModal = true;
+        StateHasChanged();
+    }
+    private void ShowMessage(string title, string message)
+    {
+        OpenModal(title, message, "OK", () => Task.CompletedTask, infoOnly: true);
+    }
+    private void CloseModal()
+    {
+        _showModal = false;
+        _onConfirm = null;
+        StateHasChanged();
+    }
+    private void ConfirmModalAction()
+    {
+        if (_onConfirm != null)
+            _onConfirm();
+        CloseModal();
+    }
+
+    private void UserLogin()
+    {
+        if (string.IsNullOrWhiteSpace(_loginUsername))
+        {
+            ShowMessage("Username", "Please enter a username");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_loginPassword))
+        {
+            ShowMessage("Password", "Please enter a password");
+            return;
+        }
+        //  TODO: Validate username and password based on database
+        /*
+        TODO: Might not need a login service but might need to collect data from the database, IDK.
+        I would believe yes because the EncryptionTool page also needs to check for a valid login but IDK.
+        This could potential be a thing where the database is easy to grab from but I doubt probably gonna
+        need a service.
+        */
+
+        /* I have kept this very brief instead of separating it into 2 if statement checks
+         deliberately, for security reasons. */
+        if ((_loginUsername != "test" || _loginPassword != "testtest"))
+        {
+            ShowMessage("Invalid Login", "Incorrect username and/or password");
+            return;
+        }
+
+        NavigationManager.NavigateTo("/");
+    }
+
+    // Don't use modals here instead have the EncryptionTool page show a modal (ShowMessage()) when the user
+    // successfully logs in and it auto switches back to the EncryptionTool page.
 }

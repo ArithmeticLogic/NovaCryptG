@@ -20,10 +20,10 @@ public class CryptographyService
         var result = new OperationResult();
         try
         {
-            if (password.Length < 8)
+            if (password.Length < 8 || !password.Any(char.IsDigit) || !password.Any(c => !char.IsLetterOrDigit(c)))
             {
                 result.Success = false;
-                result.Message = "Password must be at least 8 characters";
+                result.Message = "Password must be at least 8 characters long, and have at least 1 digit and special character";
                 return result;
             }
 
@@ -93,7 +93,7 @@ public class CryptographyService
                 result = StandardXOR(result, password);
 
                 // Layer 2: XOR in reverse order
-                result = ReverseXOR(result, password);
+                result = ReversedXOR(result, password);
 
                 // Layer 3: Rolling XOR (each byte affects the next)
                 result = RollingXOR(result, password, true);
@@ -113,7 +113,7 @@ public class CryptographyService
                 result = BitRotation(result, password, false);
                 result = ReversedPasswordXOR(result, password);
                 result = RollingXOR(result, password, false);
-                result = ReverseXOR(result, password);
+                result = ReversedXOR(result, password);
                 result = StandardXOR(result, password);
             }
         }
@@ -136,7 +136,7 @@ public class CryptographyService
     }
 
     // Layer 2: XOR in reverse order
-    private static byte[] ReverseXOR(byte[] data, string password)
+    private static byte[] ReversedXOR(byte[] data, string password)
     {
         byte[] passwordBytes = Encoding.UTF8.GetBytes(password);
         byte[] result = new byte[data.Length];
