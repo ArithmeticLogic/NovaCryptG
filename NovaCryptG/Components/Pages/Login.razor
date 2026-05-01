@@ -11,7 +11,7 @@
         <div class="col-md-7">
             <div class="card shadow-sm h-100">
                 <div class="card-header bg-transparent">
-                    Login
+                    Log in
                 </div>
                 <div class="card-body">
                     <div class="mb-3">
@@ -29,7 +29,7 @@
                 </div>
                 <div class="card-footer bg-transparent">
                     <button class="btn btn-primary w-100" @onclick="UserLogin">
-                        Login
+                        Log in
                     </button>
                 </div>
             </div>
@@ -106,6 +106,7 @@
 
     private void UserLogin()
     {
+        // I did not check for whitespace in any of the text deliberately, for security reasons.
         if (string.IsNullOrWhiteSpace(_loginUsername))
         {
             ShowMessage("Username", "Please enter a username");
