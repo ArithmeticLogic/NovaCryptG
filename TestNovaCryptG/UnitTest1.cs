@@ -17,7 +17,7 @@ namespace TestNovaCryptG
         {
             // Arrange
             string original = "Hello, world!";
-            string password = "testing1!"; // Password must be at least 8 characters long, have at least 1 digit and special character, and have no white spaces
+            string password = "Testing1! "; // Password must be at least 8 characters long and have at least 1 upper case character, digit, and special character
             byte[] originalBytes = Encoding.UTF8.GetBytes(original);
 
             // Act
@@ -37,9 +37,20 @@ namespace TestNovaCryptG
         public async Task Encrypt_ShortPassword_ShouldFail()
         {
             byte[] data = Encoding.UTF8.GetBytes("test");
-            string shortPassword = "testing"; // Less than 8 characters
+            string shortPassword = "Test1!"; // Less than 8 characters
 
             var result = await CryptographyService.EncryptFileAsync(data, "file.txt", shortPassword);
+            Assert.False(result.Success);
+            Assert.Contains("Password must be at least 8 characters", result.Message);
+        }
+
+        [Fact]
+        public async Task Encrypt_NoUpperCaseCharacterInPassword_ShouldFail()
+        {
+            byte[] data = Encoding.UTF8.GetBytes("test");
+            string noUpperCaseCharacterPassword = "testing1!"; // No upper case character
+
+            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", noUpperCaseCharacterPassword);
             Assert.False(result.Success);
             Assert.Contains("Password must be at least 8 characters", result.Message);
         }
@@ -48,7 +59,7 @@ namespace TestNovaCryptG
         public async Task Encrypt_NoDigitInPassword_ShouldFail()
         {
             byte[] data = Encoding.UTF8.GetBytes("test");
-            string noDigitPassword = "testing!"; // No digit
+            string noDigitPassword = "Testing!"; // No digit
 
             var result = await CryptographyService.EncryptFileAsync(data, "file.txt", noDigitPassword);
             Assert.False(result.Success);
@@ -59,20 +70,9 @@ namespace TestNovaCryptG
         public async Task Encrypt_NoSpecialCharacterInPassword_ShouldFail()
         {
             byte[] data = Encoding.UTF8.GetBytes("test");
-            string noSpecialCharacterPassword = "testing1"; // No special character
+            string noSpecialCharacterPassword = "Testing1"; // No special character
 
             var result = await CryptographyService.EncryptFileAsync(data, "file.txt", noSpecialCharacterPassword);
-            Assert.False(result.Success);
-            Assert.Contains("Password must be at least 8 characters", result.Message);
-        }
-
-        [Fact]
-        public async Task Encrypt_WhiteSpaceIsPresent_ShouldFail()
-        {
-            byte[] data = Encoding.UTF8.GetBytes("test");
-            string whiteSpaceIsPresentPassword = "testing1! "; // White space is present
-
-            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", whiteSpaceIsPresentPassword);
             Assert.False(result.Success);
             Assert.Contains("Password must be at least 8 characters", result.Message);
         }

@@ -21,11 +21,11 @@ public class CryptographyService
         try
         {
             // Validating password
-            if (password.Length < 8 || !password.Any(char.IsDigit) || !password.Any(c => !char.IsLetterOrDigit(c)) || password.Any(char.IsWhiteSpace))
+            if (password.Length < 8 || !password.Any(char.IsUpper) || !password.Any(char.IsDigit) || !password.Any(c => !char.IsLetterOrDigit(c)))
             {
                 result.Success = false;
                 result.Message =
-                    "Password must be at least 8 characters long, have at least 1 digit and special character, and have no white spaces";
+                    "Password must be at least 8 characters long and have at least 1 upper case character, digit, and special character";
                 return result;
             }
 
