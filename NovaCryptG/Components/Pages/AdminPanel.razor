@@ -1,0 +1,168 @@
+@page "/AdminPanel"
+@using NovaCryptG.Services
+@rendermode NoPrerenderMode
+@inject NavigationManager NavigationManager
+@inject UserSessionService UserSession
+@inject AuthenticationService Authentication
+
+<PageTitle>NovaCrypt - Admin Panel</PageTitle>
+
+<div class="container py-4">
+    <div class="text-center mb-5">
+        <h1 class="display-5 fw-bold">
+            Admin Panel
+        </h1>
+        <hr class="my-4 w-50 mx-auto">
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-7">
+            @if (_isAdmin == false)
+            {
+                <div class="alert alert-danger text-center">You do not have permission to access this page.</div>
+            }
+            else
+            {
+                <div class="card shadow-sm h-100">
+                    <div class="card-header bg-transparent">
+                        Create New User
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Username
+                            </label>
+                            <input type="text" @bind="_newUsername" @bind:event="oninput" class="form-control" placeholder="Enter username"/>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">
+                                Password
+                            </label>
+                            <input type="password" @bind="_newPassword" @bind:event="oninput" class="form-control" placeholder="Enter password"/>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <button class="btn btn-primary w-100" @onclick="AddUserAsync">
+                            Create User
+                        </button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Universal Modal (unchanged, just relocated outside the centered column) -->
+<div class="modal fade @(_showModal ? "show d-block" : "")" tabindex="-1" style="@(_showModal ? "display:block;" : "display:none;")" aria-hidden="@(!_showModal)">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">@_modalTitle</h5>
+                <button type="button" class="btn-close" @onclick="CloseModal"></button>
+            </div>
+            <div class="modal-body">
+                @_modalMessage
+            </div>
+            <div class="modal-footer">
+                @if (!_isInfoOnly)
+                {
+                    <button type="button" class="btn btn-secondary" @onclick="CloseModal">Cancel</button>
+                }
+                <button type="button" class="btn btn-primary" @onclick="ConfirmModalAction">@_modalConfirmText</button>
+            </div>
+        </div>
+    </div>
+</div>
+@if (_showModal)
+{
+    <div class="modal-backdrop fade show"></div>
+}
+
+@code {
+    private string _newUsername = "";
+    private string _newPassword = "";
+    private bool? _isAdmin;
+
+    // Modal state
+    private bool _showModal;
+    private string _modalTitle = "";
+    private string _modalMessage = "";
+    private string _modalConfirmText = "OK";
+    private bool _isInfoOnly = true;
+    private Func<Task>? _onConfirm;
+
+    private static IComponentRenderMode NoPrerenderMode =>
+        new InteractiveServerRenderMode(prerender: false);
+
+    protected override async Task OnInitializedAsync()
+    {
+        // User logged in check
+        if (!UserSession.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/Login");
+            return;
+        }
+
+        // Admin Check
+        _isAdmin = await Authentication.IsUserAdminAsync(UserSession.CurrentUserName!);
+    }
+
+    // Modal helpers (same as other pages)
+    private void OpenModal(string title, string message, string confirmText, Func<Task> confirmAction, bool infoOnly = false)
+    {
+        _modalTitle = title;
+        _modalMessage = message;
+        _modalConfirmText = confirmText;
+        _isInfoOnly = infoOnly;
+        _onConfirm = confirmAction;
+        _showModal = true;
+        StateHasChanged();
+    }
+
+    private void ShowMessage(string title, string message)
+    {
+        OpenModal(title, message, "OK", () => Task.CompletedTask, infoOnly: true);
+    }
+
+    private void CloseModal()
+    {
+        _showModal = false;
+        _onConfirm = null;
+        StateHasChanged();
+    }
+
+    private void ConfirmModalAction()
+    {
+        if (_onConfirm != null)
+            _onConfirm();
+        CloseModal();
+    }
+
+    private async Task AddUserAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_newUsername))
+        {
+            ShowMessage("Username", "Please enter a username");
+            return;
+        }
+        if (string.IsNullOrWhiteSpace(_newPassword))
+        {
+            ShowMessage("Password", "Please enter a password");
+            return;
+        }
+
+        var (success, message) = await Authentication.RegisterAsync(_newUsername, _newPassword);
+
+        if (success)
+        {
+            ShowMessage("Success", $"User '{_newUsername}' created successfully.");
+            _newUsername = "";
+            _newPassword = "";
+            StateHasChanged();
+        }
+        else
+        {
+            ShowMessage("Error: User creation", message);
+        }
+    }
+}

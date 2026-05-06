@@ -1,12 +1,13 @@
 @page "/Login"
-@rendermode InteractiveServer
+@rendermode NoPrerenderMode
 @inject NavigationManager NavigationManager
 @using NovaCryptG.Services
+@inject AuthenticationService AuthService
+@inject UserSessionService UserSession
 
 <PageTitle>NovaCrypt - Login</PageTitle>
 
 <div class="container py-4">
-    <!-- Login username and password input, and Button Display -->
     <div class="row justify-content-center">
         <div class="col-md-7">
             <div class="card shadow-sm h-100">
@@ -66,6 +67,7 @@
 @code {
     private string _loginUsername = "";
     private string _loginPassword = "";
+    private int _loginAttemptsRemaining = 5;
 
     // Modal state
     private bool _showModal;
@@ -75,8 +77,10 @@
     private bool _isInfoOnly = true;
     private Func<Task>? _onConfirm;
 
+    private static IComponentRenderMode NoPrerenderMode =>
+        new InteractiveServerRenderMode(prerender: false);
+
     // Modal helpers
-    // I have decided not to use async/await, due to the modal not closing instantly after a button has been pressed
     private void OpenModal(string title, string message, string confirmText, Func<Task> confirmAction, bool infoOnly = false)
     {
         _modalTitle = title;
@@ -87,16 +91,19 @@
         _showModal = true;
         StateHasChanged();
     }
+
     private void ShowMessage(string title, string message)
     {
         OpenModal(title, message, "OK", () => Task.CompletedTask, infoOnly: true);
     }
+
     private void CloseModal()
     {
         _showModal = false;
         _onConfirm = null;
         StateHasChanged();
     }
+
     private void ConfirmModalAction()
     {
         if (_onConfirm != null)
@@ -104,9 +111,8 @@
         CloseModal();
     }
 
-    private void UserLogin()
+    private async Task UserLogin()
     {
-        // I did not check for whitespace in any of the text deliberately, for security reasons.
         if (string.IsNullOrWhiteSpace(_loginUsername))
         {
             ShowMessage("Username", "Please enter a username");
@@ -117,25 +123,29 @@
             ShowMessage("Password", "Please enter a password");
             return;
         }
-        //  TODO: Validate username and password based on database
-        /*
-        TODO: Might not need a login service but might need to collect data from the database, IDK.
-        I would believe yes because the EncryptionTool page also needs to check for a valid login but IDK.
-        This could potential be a thing where the database is easy to grab from but I doubt probably gonna
-        need a service.
-        */
 
-        /* I have kept this very brief instead of separating it into 2 if statement checks
-         deliberately, for security reasons. */
-        if ((_loginUsername != "test" || _loginPassword != "testtest"))
+        if (_loginAttemptsRemaining <= 0)
         {
-            ShowMessage("Invalid Login", "Incorrect username and/or password");
+            ShowMessage("Locked Out", "You have been locked out.");
             return;
         }
 
+        var user = await AuthService.LoginAsync(_loginUsername, _loginPassword);
+
+        if (user is null)
+        {
+            _loginAttemptsRemaining--;
+            ShowMessage("Invalid Login", $"Incorrect username and/or password, {_loginAttemptsRemaining} login attempt(s) remaining before lock out.");
+            return;
+        }
+
+        // Successful login – reset attempts
+        _loginAttemptsRemaining = 5;
+
+        // Set the session
+        UserSession.LogIn(user.UserName);
+
+        // Redirect to the root page
         NavigationManager.NavigateTo("/");
     }
-
-    // Don't use modals here instead have the EncryptionTool page show a modal (ShowMessage()) when the user
-    // successfully logs in and it auto switches back to the EncryptionTool page.
 }

@@ -1,10 +1,12 @@
 @page "/"
-@rendermode InteractiveServer
+@rendermode NoPrerenderMode
 @using System.Text
-@using NovaCryptG.Services
-@inject FileStorageService FileStorage
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
+@inject FileStorageService FileStorage
+@inject UserSessionService UserSession
+@inject AuthenticationService Authentication
+@using NovaCryptG.Services
 
 <PageTitle>NovaCrypt - Encryption Tool</PageTitle>
 
@@ -111,7 +113,7 @@
                         </label>
                         <input type="password" @bind="_decryptPassword" @bind:event="oninput" class="form-control" placeholder="Enter password" />
                         <!-- I have deliberately removed the password validation checks as they are unnecessary for the decryption password -->
-                        </div>
+                    </div>
                 </div>
                 <div class="card-footer bg-transparent">
                     <button class="btn btn-secondary w-100" @onclick="Decrypt" disabled="@(string.IsNullOrEmpty(_decryptPassword) || string.IsNullOrWhiteSpace(_textContent))">
@@ -167,6 +169,14 @@
     </div>
 </div>
 
+<!-- Admin Panel button, displays for admins only -->
+@if (_isAdmin)
+{
+    <div class="container py-4">
+            <button class="btn btn-primary w-100" @onclick="GoToAdminPanel">Admin Panel</button>
+    </div>
+}
+
 <!-- Universal Modal -->
 <div class="modal fade @(_showModal ? "show d-block" : "")" tabindex="-1" style="@(_showModal ? "display:block;" : "display:none;")" aria-hidden="@(!_showModal)">
     <div class="modal-dialog">
@@ -194,10 +204,14 @@
 }
 
 @code {
+    private static IComponentRenderMode NoPrerenderMode =>
+        new InteractiveServerRenderMode(prerender: false);
+
     private List<string?> _fileList = new();
     private string _selectedFile = "";
     private bool _isModified;
     private bool _isEncrypted; // True if current text is base64 (Potentially encrypted)
+    private bool _isAdmin = false; // Admin check
 
     // Text and password input
     private string _textContent = "";
@@ -213,9 +227,24 @@
     private bool _isInfoOnly = true;
     private Func<Task>? _onConfirm;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
+        // User logged in check
+        if (!UserSession.IsLoggedIn)
+        {
+            NavigationManager.NavigateTo("/Login");
+            return;
+        }
+
+        // Admin Check
+        _isAdmin = await Authentication.IsUserAdminAsync(UserSession.CurrentUserName!);
+
         RefreshFileList();
+    }
+
+    private void GoToAdminPanel()
+    {
+        NavigationManager.NavigateTo("/AdminPanel");
     }
 
     private void RefreshFileList()
@@ -278,8 +307,6 @@
             _onConfirm();
         CloseModal();
     }
-
-    // TODO: Login stuff (Service Probably) (Check Login.razor for more details)
 
     // Encryption
     private async Task Encrypt()
