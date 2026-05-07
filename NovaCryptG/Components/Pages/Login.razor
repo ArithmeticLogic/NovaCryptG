@@ -2,7 +2,7 @@
 @rendermode NoPrerenderMode
 @inject NavigationManager NavigationManager
 @using NovaCryptG.Services
-@inject AuthenticationService AuthService
+@inject AuthenticationService Authentication
 @inject UserSessionService UserSession
 
 <PageTitle>NovaCrypt - Login</PageTitle>
@@ -29,7 +29,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-primary w-100" @onclick="UserLogin">
+                    <button class="btn btn-primary w-100" @onclick="UserLoginAsync">
                         Log in
                     </button>
                 </div>
@@ -111,7 +111,7 @@
         CloseModal();
     }
 
-    private async Task UserLogin()
+    private async Task UserLoginAsync()
     {
         if (string.IsNullOrWhiteSpace(_loginUsername))
         {
@@ -130,7 +130,7 @@
             return;
         }
 
-        var user = await AuthService.LoginAsync(_loginUsername, _loginPassword);
+        var user = await Authentication.LoginAsync(_loginUsername, _loginPassword);
 
         if (user is null)
         {

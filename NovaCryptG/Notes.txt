@@ -9,4 +9,4 @@ to commit or push to git or GitHub?
 [Check] - Meaningful variable/function naming conventions
 [Check] - Have meaningful variables/functions.
 [Check] - Split them up like input username, check username.
-[Check] - Don’t make a single function do too much.
+[Probably Done] - Don’t make a single function do too much.
