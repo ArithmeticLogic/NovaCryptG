@@ -2,7 +2,7 @@ using System.Text;
 
 namespace NovaCryptG.Services;
 
-public class CryptographyService
+public class EncryptionService
 {
     // 15 is balanced (Speed and Security), 20 is increased security, 25 is max security
     private const int _rounds = 25; // Number of times to repeat each layer

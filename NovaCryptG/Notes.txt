@@ -1,9 +1,7 @@
 [Maybe Fix] Encryption tool has supposed issues with _ = <-- The async function
-[Maybe] Try catch if database is unavailable
 [Do] Finish all TODOs
 [DO] HAVE the automated TESTS run when uploading? maybe attempting
 to commit or push to git or GitHub?
-[DO] The database in the build fails
 
 [Do] - Comments where required
 [Probably Done] - Camel case

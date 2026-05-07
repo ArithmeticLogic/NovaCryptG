@@ -7,11 +7,11 @@ using Moq;
 using NovaCryptG.Services;
 
 // TODO: Look into whether I should add some tests from the pages such as password validation.
-// TODO: Add tests for the other services
+// TODO: Add tests for the other services (Current services with tests should be fine and not require any major updated)
 namespace TestNovaCryptG
 {
     // Tests for CryptographyService (static methods)
-    public class CryptographyServiceTests
+    public class EncryptionServiceTests
     {
         [Fact]
         public async Task Encrypt_Decrypt_RoundTrip()
@@ -22,11 +22,11 @@ namespace TestNovaCryptG
             byte[] originalBytes = Encoding.UTF8.GetBytes(original);
 
             // Act
-            var encryptResult = await CryptographyService.EncryptFileAsync(originalBytes, "temp", password);
+            var encryptResult = await EncryptionService.EncryptFileAsync(originalBytes, "temp", password);
             Assert.True(encryptResult.Success);
             byte[] encrypted = encryptResult.Data;
 
-            var decryptResult = await CryptographyService.DecryptFileAsync(encrypted, "temp.encrypted", password);
+            var decryptResult = await EncryptionService.DecryptFileAsync(encrypted, "temp.encrypted", password);
             Assert.True(decryptResult.Success);
             string decrypted = Encoding.UTF8.GetString(decryptResult.Data);
 
@@ -40,7 +40,7 @@ namespace TestNovaCryptG
             byte[] data = Encoding.UTF8.GetBytes("test");
             string shortPassword = "Test1!"; // Less than 8 characters
 
-            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", shortPassword);
+            var result = await EncryptionService.EncryptFileAsync(data, "file.txt", shortPassword);
             Assert.False(result.Success);
             Assert.Contains("Password must be at least 8 characters", result.Message);
         }
@@ -51,7 +51,7 @@ namespace TestNovaCryptG
             byte[] data = Encoding.UTF8.GetBytes("test");
             string noUpperCaseCharacterPassword = "testing1!"; // No upper case character
 
-            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", noUpperCaseCharacterPassword);
+            var result = await EncryptionService.EncryptFileAsync(data, "file.txt", noUpperCaseCharacterPassword);
             Assert.False(result.Success);
             Assert.Contains("Password must be at least 8 characters", result.Message);
         }
@@ -62,7 +62,7 @@ namespace TestNovaCryptG
             byte[] data = Encoding.UTF8.GetBytes("test");
             string noDigitPassword = "Testing!"; // No digit
 
-            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", noDigitPassword);
+            var result = await EncryptionService.EncryptFileAsync(data, "file.txt", noDigitPassword);
             Assert.False(result.Success);
             Assert.Contains("Password must be at least 8 characters", result.Message);
         }
@@ -73,7 +73,7 @@ namespace TestNovaCryptG
             byte[] data = Encoding.UTF8.GetBytes("test");
             string noSpecialCharacterPassword = "Testing1"; // No special character
 
-            var result = await CryptographyService.EncryptFileAsync(data, "file.txt", noSpecialCharacterPassword);
+            var result = await EncryptionService.EncryptFileAsync(data, "file.txt", noSpecialCharacterPassword);
             Assert.False(result.Success);
             Assert.Contains("Password must be at least 8 characters", result.Message);
         }
@@ -86,11 +86,11 @@ namespace TestNovaCryptG
             string wrongPassword = "wrongPassword1!";
             byte[] originalBytes = Encoding.UTF8.GetBytes(original);
 
-            var encryptResult = await CryptographyService.EncryptFileAsync(originalBytes, "file.txt", correctPassword);
+            var encryptResult = await EncryptionService.EncryptFileAsync(originalBytes, "file.txt", correctPassword);
             Assert.True(encryptResult.Success);
             byte[] encrypted = encryptResult.Data;
 
-            var decryptResult = await CryptographyService.DecryptFileAsync(encrypted, "file.txt.encrypted", wrongPassword);
+            var decryptResult = await EncryptionService.DecryptFileAsync(encrypted, "file.txt.encrypted", wrongPassword);
             Assert.True(decryptResult.Success); // decryption always succeeds
             string decrypted = Encoding.UTF8.GetString(decryptResult.Data);
 
@@ -104,7 +104,7 @@ namespace TestNovaCryptG
             byte[] plainBytes = Encoding.UTF8.GetBytes("This is not encrypted");
             const string fileName = "plain.txt";
 
-            var result = await CryptographyService.DecryptFileAsync(plainBytes, fileName, "testing1!");
+            var result = await EncryptionService.DecryptFileAsync(plainBytes, fileName, "testing1!");
             Assert.False(result.Success);
             Assert.Equal("File is not encrypted", result.Message);
         }
