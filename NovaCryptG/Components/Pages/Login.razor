@@ -1,5 +1,5 @@
 @page "/Login"
-@rendermode NoPrerenderMode
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @inject NavigationManager NavigationManager
 @using NovaCryptG.Services
 @inject AuthenticationService Authentication
@@ -76,9 +76,6 @@
     private string _modalConfirmText = "OK";
     private bool _isInfoOnly = true;
     private Func<Task>? _onConfirm;
-
-    private static IComponentRenderMode NoPrerenderMode =>
-        new InteractiveServerRenderMode(prerender: false);
 
     // Modal helpers
     private void OpenModal(string title, string message, string confirmText, Func<Task> confirmAction, bool infoOnly = false)

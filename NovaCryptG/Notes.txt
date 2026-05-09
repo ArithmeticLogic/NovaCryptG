@@ -1,4 +1,3 @@
-[Maybe Fix] Encryption tool has supposed issues with _ = <-- The async function
 [Do] Finish all TODOs
 [DO] HAVE the automated TESTS run when uploading? maybe attempting
 to commit or push to git or GitHub?
@@ -6,7 +5,7 @@ to commit or push to git or GitHub?
 [Do] - Comments where required
 [Probably Done] - Camel case
 [Probably Done] - Indentation
-[Check] - Meaningful variable/function naming conventions
-[Check] - Have meaningful variables/functions.
-[Check] - Split them up like input username, check username.
+[Probably Done] - Meaningful variable/function naming conventions
+[Do] - Have meaningful variables/functions.
+[Probably Done] - Split them up like input username, check username.
 [Probably Done] - Don’t make a single function do too much.

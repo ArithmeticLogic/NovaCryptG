@@ -1,5 +1,5 @@
 @page "/"
-@rendermode NoPrerenderMode
+@rendermode @(new InteractiveServerRenderMode(prerender: false))
 @using System.Text
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JsRuntime
@@ -171,7 +171,7 @@
 
 <!-- This button is not present in the designs and should not technically exist. However, I needed a better way to add users. -->
 <!-- Admin Panel button, displays for admins only -->
-@if (_isAdmin)
+@if (_isAdmin == true)
 {
     <div class="container py-4">
             <button class="btn btn-primary w-100" @onclick="GoToAdminPanel">Admin Panel</button>
@@ -205,14 +205,11 @@
 }
 
 @code {
-    private static IComponentRenderMode NoPrerenderMode =>
-        new InteractiveServerRenderMode(prerender: false);
-
     private List<string?> _fileList = new();
     private string _selectedFile = "";
     private bool _isModified;
     private bool _isEncrypted; // True if current text is base64 (Potentially encrypted)
-    private bool _isAdmin = false; // Admin check
+    private bool? _isAdmin = false; // Admin check
 
     // Text and password input
     private string _textContent = "";
@@ -381,7 +378,7 @@
     {
         if (_isEncrypted)
         {
-            PerformSaveFile();
+            _ = PerformSaveFile();
         }
         else
         {
@@ -462,14 +459,14 @@
                 "Proceed",
                 () =>
                 {
-                    PerformLoadFile();
+                    _ = PerformLoadFile();
                     return Task.CompletedTask;
                 }
             );
         }
         else
         {
-            PerformLoadFile();
+            _ = PerformLoadFile();
         }
     }
 

@@ -20,6 +20,7 @@ builder.Services.AddScoped<EncryptionService>();
 builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<UserSessionService>();
+builder.Services.AddScoped<RegistrationService>();
 
 // SQLite database path
 // TODO: Maybe add this try catch to other code that also looks for database data.
