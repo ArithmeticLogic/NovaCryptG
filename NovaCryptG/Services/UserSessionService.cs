@@ -14,5 +14,8 @@ public class UserSessionService
         NotifyStateChanged();
     }
 
-    private void NotifyStateChanged() => OnChanged?.Invoke();
+    private void NotifyStateChanged()
+    {
+        OnChanged?.Invoke();
+    }
 }

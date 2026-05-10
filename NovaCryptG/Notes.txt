@@ -1,11 +1,3 @@
 [Do] Finish all TODOs
-[DO] HAVE the automated TESTS run when uploading? maybe attempting
+[Do] HAVE the automated TESTS run when uploading? maybe attempting
 to commit or push to git or GitHub?
-
-[Do] - Comments where required
-[Probably Done] - Camel case
-[Probably Done] - Indentation
-[Probably Done] - Meaningful variable/function naming conventions
-[Do] - Have meaningful variables/functions.
-[Probably Done] - Split them up like input username, check username.
-[Probably Done] - Don’t make a single function do too much.

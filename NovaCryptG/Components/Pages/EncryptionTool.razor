@@ -123,7 +123,7 @@
             </div>
         </div>
 
-        <!-- Saved Files Display (with Save, New, Load, Delete) -->
+        <!-- Saved Files and Save, New, Load, and Delete buttons display. -->
         <div class="col-12">
             <div class="card shadow-sm">
                 <div class="card-header bg-transparent">
@@ -170,7 +170,7 @@
 </div>
 
 <!-- This button is not present in the designs and should not technically exist. However, I needed a better way to add users. -->
-<!-- Admin Panel button, displays for admins only -->
+<!-- Admin Panel button (displays for admin users only) -->
 @if (_isAdmin == true)
 {
     <div class="container py-4">
@@ -234,7 +234,7 @@
             return;
         }
 
-        // Admin Check
+        // User admin privilege check
         _isAdmin = await Authentication.IsUserAdminAsync(UserSession.CurrentUserName!);
 
         RefreshFileList();
@@ -259,6 +259,7 @@
         StateHasChanged();
     }
 
+    // Function to check whether text is base64
     private static bool IsBase64String(string s)
     {
         if (string.IsNullOrEmpty(s)) return false;
@@ -307,12 +308,13 @@
         CloseModal();
     }
 
-    // Encryption
+    // Procedure to encrypt the plain text input
     private async Task Encrypt()
     {
         try
         {
-            /* This could be used to check whether the text is already encrypted.
+            /*
+             This could be used to check whether the text is already encrypted.
              However, this is unnecessary as the user may want to encrypt base64 text or
              run the encryption several times.
             if (IsBase64String(_textContent))
@@ -342,11 +344,12 @@
         }
     }
 
-    // Decryption
+    // Procedure to decrypt the encrypted text
     private async Task Decrypt()
     {
         try
         {
+            // Check if text is base64
             if (!IsBase64String(_textContent))
             {
                 ShowMessage("Decryption Failed", "The current text is not base64, cannot be decrypted.");
@@ -448,7 +451,7 @@
         StateHasChanged();
     }
 
-    // Load File from servers file system
+    // Load File
     private void LoadFile()
     {
         if (_isModified && !string.IsNullOrWhiteSpace(_textContent))
@@ -475,6 +478,8 @@
         try
         {
             var content = await FileStorage.LoadFileAsync(_selectedFile);
+
+            // Check if text content in the text editor is empty
             if (!string.IsNullOrEmpty(content))
             {
                 _textContent = content;
@@ -519,6 +524,7 @@
         try
         {
             var fileToDelete = _selectedFile;
+            // Check if a file is selected and exists
             if (string.IsNullOrEmpty(fileToDelete)) return;
 
             FileStorage.DeleteFile(fileToDelete);

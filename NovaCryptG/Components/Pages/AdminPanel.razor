@@ -54,7 +54,7 @@
     </div>
 </div>
 
-<!-- Universal Modal (unchanged, just relocated outside the centered column) -->
+<!-- Universal Modal -->
 <div class="modal fade @(_showModal ? "show d-block" : "")" tabindex="-1" style="@(_showModal ? "display:block;" : "display:none;")" aria-hidden="@(!_showModal)">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -102,11 +102,11 @@
             return;
         }
 
-        // Admin Check
+        // User admin privilege check
         _isAdmin = await Authentication.IsUserAdminAsync(UserSession.CurrentUserName!);
     }
 
-    // Modal helpers (same as other pages)
+    // Modal helpers
     private void OpenModal(string title, string message, string confirmText, Func<Task> confirmAction, bool infoOnly = false)
     {
         _modalTitle = title;
@@ -139,17 +139,21 @@
 
     private async Task AddUserAsync()
     {
+        // Username validation
         if (string.IsNullOrWhiteSpace(_newUsername))
         {
             ShowMessage("Username", "Please enter a username");
             return;
         }
+
+        // Password validation
         if (string.IsNullOrWhiteSpace(_newPassword))
         {
             ShowMessage("Password", "Please enter a password");
             return;
         }
 
+        // Register a new user using the username and password combo provided
         var (success, message) = await Registration.RegisterAsync(_newUsername, _newPassword);
 
         if (success)

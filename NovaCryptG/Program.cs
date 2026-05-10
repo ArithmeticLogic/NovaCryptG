@@ -29,8 +29,8 @@ try
     var dbFolder = Path.Combine(AppContext.BaseDirectory, "Data");
     var dbPath = Path.Combine(dbFolder, "LoginData.db");
 
-builder.Services.AddDbContextFactory<AppDbContext>(options =>
-    options.UseSqlite($"Data Source={dbPath}"));
+    builder.Services.AddDbContextFactory<AppDbContext>(options =>
+        options.UseSqlite($"Data Source={dbPath}"));
 }
 catch (SqliteException ex)
 {

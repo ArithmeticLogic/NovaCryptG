@@ -110,25 +110,29 @@
 
     private async Task UserLoginAsync()
     {
+        // Username validation
         if (string.IsNullOrWhiteSpace(_loginUsername))
         {
             ShowMessage("Username", "Please enter a username");
             return;
         }
+
+        // Password validation
         if (string.IsNullOrWhiteSpace(_loginPassword))
         {
             ShowMessage("Password", "Please enter a password");
             return;
         }
 
+        // Lock out a user after x number of attempts
         if (_loginAttemptsRemaining <= 0)
         {
             ShowMessage("Locked Out", "You have been locked out.");
             return;
         }
 
+        // Verify username and password combo
         var user = await Authentication.LoginAsync(_loginUsername, _loginPassword);
-
         if (user is null)
         {
             _loginAttemptsRemaining--;
@@ -136,7 +140,7 @@
             return;
         }
 
-        // Successful login – reset attempts
+        // Successful login resets attempts until lock out
         _loginAttemptsRemaining = 5;
 
         // Set the session

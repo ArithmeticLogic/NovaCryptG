@@ -7,9 +7,10 @@ namespace NovaCryptG.Services;
 // This service is not present in the designs and should not technically exist. However, I needed a better way to add users.
 public class RegistrationService(IDbContextFactory<AppDbContext> contextFactory)
 {
+    // Function to add a new user to the database, including username and password combo.
     public async Task<(bool Success, string Message)> RegisterAsync(string username, string password)
     {
-        // No password validation is required, due to the admin user being in control of account creation
+        // No password validation is required, due to the admin user being in control of account creation.
 
         await using var db = await contextFactory.CreateDbContextAsync();
 
@@ -23,6 +24,8 @@ public class RegistrationService(IDbContextFactory<AppDbContext> contextFactory)
 
         // Using BCrypt to hash the password
         var hash = BCrypt.Net.BCrypt.HashPassword(password);
+
+        // Adding the new user credentials to the database
         db.LoginCredentials.Add(new LoginCredential
         {
             UserName = username,

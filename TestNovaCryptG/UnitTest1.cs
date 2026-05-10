@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Hosting;
 using Moq;
 using NovaCryptG.Services;
 
-// TODO: Look into whether I should add some tests from the pages such as password validation.
+// TODO: Look into whether I should add some tests from the pages.
 // TODO: Add tests for the other services (Current services with tests should be fine and not require any major updated)
 namespace TestNovaCryptG
 {

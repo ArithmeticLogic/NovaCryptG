@@ -5,7 +5,7 @@ namespace NovaCryptG.Services;
 public class EncryptionService
 {
     // 15 is balanced (Speed and Security), 20 is increased security, 25 is max security
-    private const int _rounds = 25; // Number of times to repeat each layer
+    private const int Rounds = 25; // Number of times to repeat all layers of the encryption process
 
     // File Operations
     public class OperationResult
@@ -48,6 +48,7 @@ public class EncryptionService
         var result = new OperationResult();
         try
         {
+            // Setting file format
             if (!fileName.EndsWith(".encrypted"))
             {
                 result.Success = false;
@@ -89,7 +90,7 @@ public class EncryptionService
         if (encrypt)
         {
             // Run all layers multiple times (Rounds)
-            for (int round = 0; round < _rounds; round++)
+            for (int round = 0; round < Rounds; round++)
             {
                 // Layer 1: Standard XOR
                 result = StandardXOR(result, password);
@@ -110,7 +111,7 @@ public class EncryptionService
         else
         {
             // Decryption applies layers in reverse order for the same number of rounds
-            for (int round = 0; round < _rounds; round++)
+            for (int round = 0; round < Rounds; round++)
             {
                 result = BitRotation(result, password, false);
                 result = ReversedPasswordXOR(result, password);
