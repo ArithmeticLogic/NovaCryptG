@@ -1,5 +1,5 @@
 Run the application
-dotnet run --project {projectFolderPath}.
+- dotnet run --project {projectFolderPath}.
 
 Users
 - Username: Admin, Password: Admin.
