@@ -93,7 +93,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-primary w-100" @onclick="Encrypt" disabled="@((_encryptPassword != _confirmEncryptPassword) || string.IsNullOrEmpty(_encryptPassword) || (_encryptPassword.Length < 8) || !_encryptPassword.Any(char.IsUpper) || !_encryptPassword.Any(char.IsDigit) || !_encryptPassword.Any(c => !char.IsLetterOrDigit(c)) || string.IsNullOrWhiteSpace(_textContent))">
+                    <button class="btn btn-primary w-100" @onclick="EncryptAsync" disabled="@((_encryptPassword != _confirmEncryptPassword) || string.IsNullOrEmpty(_encryptPassword) || (_encryptPassword.Length < 8) || !_encryptPassword.Any(char.IsUpper) || !_encryptPassword.Any(char.IsDigit) || !_encryptPassword.Any(c => !char.IsLetterOrDigit(c)) || string.IsNullOrWhiteSpace(_textContent))">
                         Encrypt
                     </button>
                 </div>
@@ -116,7 +116,7 @@
                     </div>
                 </div>
                 <div class="card-footer bg-transparent">
-                    <button class="btn btn-secondary w-100" @onclick="Decrypt" disabled="@(string.IsNullOrEmpty(_decryptPassword) || string.IsNullOrWhiteSpace(_textContent))">
+                    <button class="btn btn-secondary w-100" @onclick="DecryptAsync" disabled="@(string.IsNullOrEmpty(_decryptPassword) || string.IsNullOrWhiteSpace(_textContent))">
                         Decrypt
                     </button>
                 </div>
@@ -241,10 +241,7 @@
     }
 
     // This function is not present in the designs and should not technically exist. However, I needed a better way to add users.
-    private void GoToAdminPanel()
-    {
-        NavigationManager.NavigateTo("/AdminPanel");
-    }
+    private void GoToAdminPanel() => NavigationManager.NavigateTo("/AdminPanel");
 
     private void RefreshFileList()
     {
@@ -289,10 +286,8 @@
         StateHasChanged();
     }
 
-    private void ShowMessage(string title, string message)
-    {
+    private void ShowMessage(string title, string message) =>
         OpenModal(title, message, "OK", () => Task.CompletedTask, infoOnly: true);
-    }
 
     private void CloseModal()
     {
@@ -309,7 +304,7 @@
     }
 
     // Procedure to encrypt the plain text input
-    private async Task Encrypt()
+    private async Task EncryptAsync()
     {
         try
         {
@@ -345,7 +340,7 @@
     }
 
     // Procedure to decrypt the encrypted text
-    private async Task Decrypt()
+    private async Task DecryptAsync()
     {
         try
         {
@@ -381,7 +376,7 @@
     {
         if (_isEncrypted)
         {
-            _ = PerformSaveFile();
+            _ = PerformSaveFileAsync();
         }
         else
         {
@@ -389,7 +384,7 @@
         }
     }
 
-    private async Task PerformSaveFile()
+    private async Task PerformSaveFileAsync()
     {
         // Prompt for filename
         string fileName = await JsRuntime.InvokeAsync<string>("prompt", "Enter a name for the encrypted file (without extension):");
@@ -462,18 +457,18 @@
                 "Proceed",
                 () =>
                 {
-                    _ = PerformLoadFile();
+                    _ = PerformLoadFileAsync();
                     return Task.CompletedTask;
                 }
             );
         }
         else
         {
-            _ = PerformLoadFile();
+            _ = PerformLoadFileAsync();
         }
     }
 
-    private async Task PerformLoadFile()
+    private async Task PerformLoadFileAsync()
     {
         try
         {

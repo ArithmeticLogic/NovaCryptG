@@ -21,7 +21,8 @@ public class EncryptionService
         try
         {
             // Validating password
-            if (password.Length < 8 || !password.Any(char.IsUpper) || !password.Any(char.IsDigit) || !password.Any(c => !char.IsLetterOrDigit(c)))
+            if (password.Length < 8 || !password.Any(char.IsUpper) || !password.Any(char.IsDigit) ||
+                !password.Any(c => !char.IsLetterOrDigit(c)))
             {
                 result.Success = false;
                 result.Message =
@@ -72,15 +73,11 @@ public class EncryptionService
     }
 
     // Multi layer XOR Cipher and bit rotation with multiple rounds
-    private static byte[] EncryptData(byte[] data, string password)
-    {
-        return Cryptography(data, password, true);
-    }
+    private static byte[] EncryptData(byte[] data, string password) =>
+        Cryptography(data, password, true);
 
-    private static byte[] DecryptData(byte[] encryptedData, string password)
-    {
-        return Cryptography(encryptedData, password, false);
-    }
+    private static byte[] DecryptData(byte[] encryptedData, string password) =>
+        Cryptography(encryptedData, password, false);
 
     private static byte[] Cryptography(byte[] data, string password, bool encrypt)
     {

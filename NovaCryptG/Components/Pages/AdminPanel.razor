@@ -118,10 +118,8 @@
         StateHasChanged();
     }
 
-    private void ShowMessage(string title, string message)
-    {
+    private void ShowMessage(string title, string message) =>
         OpenModal(title, message, "OK", () => Task.CompletedTask, infoOnly: true);
-    }
 
     private void CloseModal()
     {
