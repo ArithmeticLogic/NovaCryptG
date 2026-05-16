@@ -46,6 +46,7 @@ public class FileStorageService
         {
             var fullPath = Path.Combine(_storagePath, fileName);
             await File.WriteAllTextAsync(fullPath, content);
+            _logger.LogInformation("Saved file {FileName}", fileName);
             return new FileResult { Success = true, Message = $"File saved as {fileName}" };
         }
         catch (Exception ex)
@@ -63,6 +64,7 @@ public class FileStorageService
             if (File.Exists(fullPath))
             {
                 var content = await File.ReadAllTextAsync(fullPath);
+                _logger.LogInformation("Loaded file {FileName}", fileName);
                 return new FileResult { Success = true, Content = content };
             }
             return new FileResult { Success = false, Message = "File not found." };
@@ -82,6 +84,7 @@ public class FileStorageService
             if (File.Exists(fullPath))
             {
                 File.Delete(fullPath);
+                _logger.LogInformation("Deleted file {FileName}", fileName);
                 return new FileResult { Success = true, Message = $"Deleted {fileName}" };
             }
             return new FileResult { Success = false, Message = "File not found." };

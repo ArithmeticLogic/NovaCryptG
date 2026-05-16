@@ -27,6 +27,7 @@ public class AuthenticationService(IDbContextFactory<AppDbContext> contextFactor
                 return null;
             }
 
+            logger.LogInformation("User {Username} has logged in successfully", username);
             return user;
         }
         catch (Exception ex)
@@ -45,6 +46,7 @@ public class AuthenticationService(IDbContextFactory<AppDbContext> contextFactor
         {
             var user = await db.LoginCredentials
                 .FirstOrDefaultAsync(u => u.UserName == username);
+            logger.LogInformation("User {Username} has been validated as admin", username);
             return user?.IsAdmin ?? false;
         }
         catch (Exception ex)
