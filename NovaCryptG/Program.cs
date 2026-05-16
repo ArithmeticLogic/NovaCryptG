@@ -16,14 +16,14 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 // Scoped services
-builder.Services.AddScoped<EncryptionService>();
+/* EncryptionService is static, not registered as a service
+builder.Services.AddScoped<EncryptionService>(); */
 builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<UserSessionService>();
 builder.Services.AddScoped<RegistrationService>();
 
-// SQLite database path
-// TODO: Maybe add this try catch to other code that also looks for database data.
+// SQLite database setup
 try
 {
     var dbFolder = Path.Combine(AppContext.BaseDirectory, "Data");
@@ -34,12 +34,18 @@ try
 }
 catch (SqliteException ex)
 {
+    // This is a startup error.
+    // The app is not built yet, so logging using the console is fine.
     Console.WriteLine("Sqlite connection could not be established.");
     Console.WriteLine(ex);
+    throw; // Re-throw to prevent the app from starting with a broken database
 }
 
 // Build the app
 var app = builder.Build();
+
+// Inject the static logger for EncryptionService
+EncryptionService.Logger = app.Services.GetRequiredService<ILogger<EncryptionService>>();
 
 // Production settings
 if (!app.Environment.IsDevelopment())

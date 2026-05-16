@@ -245,7 +245,16 @@
 
     private void RefreshFileList()
     {
-        _fileList = FileStorage.GetFileList();
+        var result = FileStorage.GetFileList();
+        if (result.Success)
+        {
+            _fileList = result.FileList;
+        }
+        else
+        {
+            _fileList.Clear();
+            ShowMessage("Error", result.Message);
+        }
         StateHasChanged();
     }
 
@@ -303,71 +312,57 @@
         CloseModal();
     }
 
-    // Procedure to encrypt the plain text input
+// Procedure to encrypt the plain text input
     private async Task EncryptAsync()
     {
-        try
+        /*
+         This could be used to check whether the text is already encrypted.
+         However, this is unnecessary as the user may want to encrypt base64 text or
+         run the encryption several times.
+        if (IsBase64String(_textContent))
         {
-            /*
-             This could be used to check whether the text is already encrypted.
-             However, this is unnecessary as the user may want to encrypt base64 text or
-             run the encryption several times.
-            if (IsBase64String(_textContent))
-            {
-                ShowMessage("Encryption Failed", "The current text is base64, cannot be encrypted.");
-                return;
-            }
-            */
-
-            byte[] plainBytes = Encoding.UTF8.GetBytes(_textContent);
-            var result = await EncryptionService.EncryptFileAsync(plainBytes, "temp", _encryptPassword);
-            if (result.Success)
-            {
-                _textContent = Convert.ToBase64String(result.Data);
-                _isEncrypted = true;
-                ShowMessage("Encryption", "Encryption successful.");
-                StateHasChanged();
-            }
-            else
-            {
-                ShowMessage("Encryption Failed", result.Message);
-            }
+            ShowMessage("Encryption Failed", "The current text is base64, cannot be encrypted.");
+            return;
         }
-        catch (Exception ex)
+        */
+
+        byte[] plainBytes = Encoding.UTF8.GetBytes(_textContent);
+        var result = await EncryptionService.EncryptFileAsync(plainBytes, "temp", _encryptPassword);
+        if (result.Success)
         {
-            ShowMessage("Error: Encrypting", ex.Message);
+            _textContent = Convert.ToBase64String(result.Data);
+            _isEncrypted = true;
+            ShowMessage("Encryption", "Encryption successful.");
+            StateHasChanged();
+        }
+        else
+        {
+            ShowMessage("Encryption Failed", result.Message);
         }
     }
 
     // Procedure to decrypt the encrypted text
     private async Task DecryptAsync()
     {
-        try
+        // Check if text is base64
+        if (!IsBase64String(_textContent))
         {
-            // Check if text is base64
-            if (!IsBase64String(_textContent))
-            {
-                ShowMessage("Decryption Failed", "The current text is not base64, cannot be decrypted.");
-                return;
-            }
-
-            byte[] encryptedBytes = Convert.FromBase64String(_textContent);
-            var result = await EncryptionService.DecryptFileAsync(encryptedBytes, "temp.encrypted", _decryptPassword);
-            if (result.Success)
-            {
-                _textContent = Encoding.UTF8.GetString(result.Data);
-                _isEncrypted = false;
-                ShowMessage("Decryption", "Decryption attempted.");
-                StateHasChanged();
-            }
-            else
-            {
-                ShowMessage("Decryption Failed", result.Message);
-            }
+            ShowMessage("Decryption Failed", "The current text is not base64, cannot be decrypted.");
+            return;
         }
-        catch (Exception ex)
+
+        byte[] encryptedBytes = Convert.FromBase64String(_textContent);
+        var result = await EncryptionService.DecryptFileAsync(encryptedBytes, "temp.encrypted", _decryptPassword);
+        if (result.Success)
         {
-            ShowMessage("Error: Decrypting", ex.Message);
+            _textContent = Encoding.UTF8.GetString(result.Data);
+            _isEncrypted = false;
+            ShowMessage("Decryption", "Decryption attempted.");
+            StateHasChanged();
+        }
+        else
+        {
+            ShowMessage("Decryption Failed", result.Message);
         }
     }
 
@@ -398,21 +393,16 @@
         fileName = fileName.Replace(" ", "_");
         string fullFileName = $"{fileName}.encrypted";
 
-        try
+        var result = await FileStorage.SaveFileAsync(fullFileName, _textContent);
+        if (result.Success)
         {
-            await FileStorage.SaveFileAsync(fullFileName, _textContent);
-            ShowMessage($"File {fullFileName}", $"File saved as {fullFileName}");
+            ShowMessage($"File {fullFileName}", result.Message);
             _isModified = false;
             RefreshFileList();
         }
-        // Error when disk space is full, folder is inaccessible, etc
-        catch (IOException ex)
+        else
         {
-            ShowMessage("Error: Saving", ex.Message);
-        }
-        catch (Exception ex)
-        {
-            ShowMessage("Error: Saving", ex.Message);
+            ShowMessage("Error", result.Message);
         }
     }
 
@@ -470,33 +460,19 @@
 
     private async Task PerformLoadFileAsync()
     {
-        try
+        var result = await FileStorage.LoadFileAsync(_selectedFile);
+        if (result.Success)
         {
-            var content = await FileStorage.LoadFileAsync(_selectedFile);
-
-            // Check if text content in the text editor is empty
-            if (!string.IsNullOrEmpty(content))
-            {
-                _textContent = content;
-                _isEncrypted = IsBase64String(content);
-                _isModified = false;
-                ShowMessage("Loaded", $"Loaded {_selectedFile}");
-                StateHasChanged();
-            }
-            else
-            {
-                ShowMessage("Loading Failed", "File is empty or could not be loaded.");
-            }
+            _textContent = result.Content;
+            _isEncrypted = IsBase64String(result.Content);
+            _isModified = false;
+            ShowMessage("Loaded", $"Loaded {_selectedFile}");
         }
-        // Error when disk space is full, folder is inaccessible, etc
-        catch (IOException ex)
+        else
         {
-            ShowMessage("Error: Loading", ex.Message);
+            ShowMessage("Loading Failed", result.Message);
         }
-        catch (Exception ex)
-        {
-            ShowMessage("Error: Loading", ex.Message);
-        }
+        StateHasChanged();
     }
 
     // Delete File
@@ -516,14 +492,15 @@
 
     private void PerformDeleteFile()
     {
-        try
-        {
-            var fileToDelete = _selectedFile;
-            // Check if a file is selected and exists
-            if (string.IsNullOrEmpty(fileToDelete)) return;
+        var fileToDelete = _selectedFile;
 
-            FileStorage.DeleteFile(fileToDelete);
-            ShowMessage("Deleted", $"Deleted {fileToDelete}");
+        // Check if a file is selected and exists
+        if (string.IsNullOrEmpty(fileToDelete)) return;
+
+        var result = FileStorage.DeleteFile(fileToDelete);
+        if (result.Success)
+        {
+            ShowMessage("Deleted", result.Message);
             RefreshFileList();
 
             // Clear selected file if it was the one just deleted
@@ -532,14 +509,9 @@
                 _selectedFile = "";
             }
         }
-        // Error when disk space is full, folder is inaccessible, etc
-        catch (IOException ex)
+        else
         {
-            ShowMessage("Error: Deleting", ex.Message);
-        }
-        catch (Exception ex)
-        {
-            ShowMessage("Error: Deleting", ex.Message);
+            ShowMessage("Error", result.Message);
         }
     }
 }

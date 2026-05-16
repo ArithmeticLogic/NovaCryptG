@@ -1,3 +1,0 @@
-[Do] Finish all TODOs
-THIS IS NOT REQUIRED -> [Do] HAVE the automated TESTS run when uploading? maybe attempting
-to commit or push to git or GitHub?

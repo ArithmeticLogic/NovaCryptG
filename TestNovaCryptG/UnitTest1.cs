@@ -1,16 +1,55 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Data.Sqlite;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using Moq;
+using NovaCryptG.Data;
+using NovaCryptG.Models;
 using NovaCryptG.Services;
 
-// TODO: Look into whether I should add some tests from the pages.
-// TODO: Add tests for the other services (Current services with tests should be fine and not require any major updated)
 namespace TestNovaCryptG
 {
-    // Tests for CryptographyService (static methods)
+    public abstract class DatabaseTestBase
+    {
+        private readonly SqliteConnection _keepAliveConnection;
+
+        protected DatabaseTestBase()
+        {
+            _keepAliveConnection = new SqliteConnection("DataSource=:memory:");
+            _keepAliveConnection.Open();
+        }
+
+        protected IDbContextFactory<AppDbContext> CreateDbContextFactory()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(_keepAliveConnection)
+                .Options;
+
+            var mockFactory = new Mock<IDbContextFactory<AppDbContext>>();
+            mockFactory
+                .Setup(f => f.CreateDbContextAsync(It.IsAny<CancellationToken>()))
+                .ReturnsAsync(() =>
+                {
+                    var context = new AppDbContext(options);
+                    context.Database.EnsureCreated();
+                    return context;
+                });
+
+            return mockFactory.Object;
+        }
+
+        public void Dispose()
+        {
+            _keepAliveConnection.Close();
+            _keepAliveConnection.Dispose();
+        }
+    }
+
     public class EncryptionServiceTests
     {
         [Fact]
@@ -110,7 +149,6 @@ namespace TestNovaCryptG
         }
     }
 
-    // Tests for FileStorageService (real file I/O in temp folder)
     public class FileStorageServiceTests : IDisposable
     {
         private readonly string _tempRoot;
@@ -122,7 +160,8 @@ namespace TestNovaCryptG
             Directory.CreateDirectory(_tempRoot);
             var mockEnv = new Mock<IWebHostEnvironment>();
             mockEnv.Setup(e => e.ContentRootPath).Returns(_tempRoot);
-            _service = new FileStorageService(mockEnv.Object);
+            var mockLogger = new Mock<ILogger<FileStorageService>>();
+            _service = new FileStorageService(mockEnv.Object, mockLogger.Object);
         }
 
         [Fact]
@@ -131,18 +170,20 @@ namespace TestNovaCryptG
             const string fileName = "test.encrypted";
             string content = "Hello, world!";
 
-            await _service.SaveFileAsync(fileName, content);
-            string loaded = await _service.LoadFileAsync(fileName);
+            var saveResult = await _service.SaveFileAsync(fileName, content);
+            Assert.True(saveResult.Success);
 
-            Assert.Equal(content, loaded);
+            var loadResult = await _service.LoadFileAsync(fileName);
+            Assert.True(loadResult.Success);
+            Assert.Equal(content, loadResult.Content);
         }
 
-        // If a file is not present/does not exist
         [Fact]
-        public async Task Load_MissingFile_ReturnsEmpty()
+        public async Task Load_MissingFile_ShouldFail()
         {
-            var loaded = await _service.LoadFileAsync("missing.encrypted");
-            Assert.Equal(string.Empty, loaded);
+            var loadResult = await _service.LoadFileAsync("missing.encrypted");
+            Assert.False(loadResult.Success);
+            Assert.Equal("File not found.", loadResult.Message);
         }
 
         [Fact]
@@ -156,10 +197,11 @@ namespace TestNovaCryptG
             Directory.CreateDirectory(storagePath);
             await File.WriteAllTextAsync(Path.Combine(storagePath, "c.txt"), "ignored");
 
-            var list = _service.GetFileList();
-            Assert.Contains("a.encrypted", list);
-            Assert.Contains("b.encrypted", list);
-            Assert.DoesNotContain("c.txt", list);
+            var listResult = _service.GetFileList();
+            Assert.True(listResult.Success);
+            Assert.Contains("a.encrypted", listResult.FileList);
+            Assert.Contains("b.encrypted", listResult.FileList);
+            Assert.DoesNotContain("c.txt", listResult.FileList);
         }
 
         [Fact]
@@ -170,22 +212,269 @@ namespace TestNovaCryptG
             var fullPath = Path.Combine(_tempRoot, "AppData", "EncryptedFiles", fileName);
             Assert.True(File.Exists(fullPath));
 
-            _service.DeleteFile(fileName);
+            var deleteResult = _service.DeleteFile(fileName);
+            Assert.True(deleteResult.Success);
             Assert.False(File.Exists(fullPath));
         }
 
-        // If a file is not present/does not exist
         [Fact]
-        public void DeleteFile_Missing_DoesNothing()
+        public void DeleteFile_Missing_ShouldFail()
         {
-            // Should not throw
-            _service.DeleteFile("nonexistent.encrypted");
+            var result = _service.DeleteFile("nonexistent.encrypted");
+            Assert.False(result.Success);
+            Assert.Equal("File not found.", result.Message);
         }
 
         public void Dispose()
         {
             if (Directory.Exists(_tempRoot))
                 Directory.Delete(_tempRoot, true);
+        }
+    }
+
+    public class AuthenticationServiceTests : DatabaseTestBase, IDisposable
+    {
+        private readonly Mock<ILogger<AuthenticationService>> _mockLogger;
+
+        public AuthenticationServiceTests()
+        {
+            _mockLogger = new Mock<ILogger<AuthenticationService>>();
+        }
+
+        private AuthenticationService CreateService(IDbContextFactory<AppDbContext> factory)
+        {
+            return new AuthenticationService(factory, _mockLogger.Object);
+        }
+
+        [Fact]
+        public async Task LoginAsync_ValidCredentials_ReturnsUser()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            string username = "testuser";
+            string password = "StrongPass1!";
+            string hashed = BCrypt.Net.BCrypt.HashPassword(password);
+
+            await using (var ctx = await factory.CreateDbContextAsync())
+            {
+                ctx.LoginCredentials.Add(new LoginCredential
+                {
+                    UserName = username,
+                    UserPassword = hashed,
+                    IsAdmin = false
+                });
+                await ctx.SaveChangesAsync();
+            }
+
+            var result = await service.LoginAsync(username, password);
+            Assert.NotNull(result);
+            Assert.Equal(username, result.UserName);
+            Assert.False(result.IsAdmin);
+        }
+
+        [Fact]
+        public async Task LoginAsync_InvalidUsername_ReturnsNull()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            var result = await service.LoginAsync("nonexistent", "AnyPass1!");
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task LoginAsync_InvalidPassword_ReturnsNull()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            string username = "testuser";
+            string correctPassword = "CorrectPass1!";
+            string wrongPassword = "WrongPass1!";
+            string hashed = BCrypt.Net.BCrypt.HashPassword(correctPassword);
+
+            await using (var ctx = await factory.CreateDbContextAsync())
+            {
+                ctx.LoginCredentials.Add(new LoginCredential
+                {
+                    UserName = username,
+                    UserPassword = hashed
+                });
+                await ctx.SaveChangesAsync();
+            }
+
+            var result = await service.LoginAsync(username, wrongPassword);
+            Assert.Null(result);
+        }
+
+        [Fact]
+        public async Task IsUserAdminAsync_AdminUser_ReturnsTrue()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            string username = "admin";
+
+            await using (var ctx = await factory.CreateDbContextAsync())
+            {
+                ctx.LoginCredentials.Add(new LoginCredential
+                {
+                    UserName = username,
+                    UserPassword = "hash",
+                    IsAdmin = true
+                });
+                await ctx.SaveChangesAsync();
+            }
+
+            var isAdmin = await service.IsUserAdminAsync(username);
+            Assert.True(isAdmin);
+        }
+
+        [Fact]
+        public async Task IsUserAdminAsync_NonAdminUser_ReturnsFalse()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            string username = "user";
+
+            await using (var ctx = await factory.CreateDbContextAsync())
+            {
+                ctx.LoginCredentials.Add(new LoginCredential
+                {
+                    UserName = username,
+                    UserPassword = "hash",
+                    IsAdmin = false
+                });
+                await ctx.SaveChangesAsync();
+            }
+
+            var isAdmin = await service.IsUserAdminAsync(username);
+            Assert.False(isAdmin);
+        }
+
+        [Fact]
+        public async Task IsUserAdminAsync_UserNotFound_ReturnsFalse()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            var isAdmin = await service.IsUserAdminAsync("ghost");
+            Assert.False(isAdmin);
+        }
+
+        public new void Dispose()
+        {
+            base.Dispose();
+        }
+    }
+
+    public class RegistrationServiceTests : DatabaseTestBase, IDisposable
+    {
+        private readonly Mock<ILogger<RegistrationService>> _mockLogger;
+
+        public RegistrationServiceTests()
+        {
+            _mockLogger = new Mock<ILogger<RegistrationService>>();
+        }
+
+        private RegistrationService CreateService(IDbContextFactory<AppDbContext> factory)
+        {
+            return new RegistrationService(factory, _mockLogger.Object);
+        }
+
+        [Fact]
+        public async Task RegisterAsync_NewUser_Succeeds()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            string username = "newuser";
+            string password = "ValidPass1!";
+
+            var (success, message) = await service.RegisterAsync(username, password);
+            Assert.True(success);
+            Assert.Contains("success", message, StringComparison.OrdinalIgnoreCase);
+
+            await using var ctx = await factory.CreateDbContextAsync();
+            var user = await ctx.LoginCredentials.FirstOrDefaultAsync(u => u.UserName == username);
+            Assert.NotNull(user);
+            Assert.True(BCrypt.Net.BCrypt.Verify(password, user.UserPassword));
+            Assert.False(user.IsAdmin);
+        }
+
+        [Fact]
+        public async Task RegisterAsync_DuplicateUsername_ShouldFail()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            string username = "existing";
+            string password = "Pass1234!";
+
+            await using (var ctx = await factory.CreateDbContextAsync())
+            {
+                ctx.LoginCredentials.Add(new LoginCredential
+                {
+                    UserName = username,
+                    UserPassword = "whatever"
+                });
+                await ctx.SaveChangesAsync();
+            }
+
+            var (success, message) = await service.RegisterAsync(username, password);
+            Assert.False(success);
+            Assert.Equal("Username already taken.", message);
+        }
+
+        [Fact]
+        public async Task RegisterAsync_CaseInsensitiveDuplicate_ShouldFail()
+        {
+            var factory = CreateDbContextFactory();
+            var service = CreateService(factory);
+            string original = "UserOne";
+            string duplicate = "userone";
+
+            await using (var ctx = await factory.CreateDbContextAsync())
+            {
+                ctx.LoginCredentials.Add(new LoginCredential
+                {
+                    UserName = original,
+                    UserPassword = "hash"
+                });
+                await ctx.SaveChangesAsync();
+            }
+
+            var (success, _) = await service.RegisterAsync(duplicate, "Pass1234!");
+            Assert.False(success);
+        }
+
+        public new void Dispose()
+        {
+            base.Dispose();
+        }
+    }
+
+    public class UserSessionServiceTests
+    {
+        [Fact]
+        public void Initially_NotLoggedIn()
+        {
+            var session = new UserSessionService();
+            Assert.False(session.IsLoggedIn);
+            Assert.Null(session.CurrentUserName);
+        }
+
+        [Fact]
+        public void LogIn_SetsUserNameAndIsLoggedIn()
+        {
+            var session = new UserSessionService();
+            session.LogIn("Alice");
+            Assert.True(session.IsLoggedIn);
+            Assert.Equal("Alice", session.CurrentUserName);
+        }
+
+        [Fact]
+        public void LogIn_RaisesOnChangedEvent()
+        {
+            var session = new UserSessionService();
+            bool eventFired = false;
+            session.OnChanged += () => eventFired = true;
+            session.LogIn("Bob");
+            Assert.True(eventFired);
         }
     }
 }

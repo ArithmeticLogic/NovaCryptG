@@ -7,7 +7,8 @@ public class EncryptionService
     // 15 is balanced (Speed and Security), 20 is increased security, 25 is max security
     private const int Rounds = 25; // Number of times to repeat all layers of the encryption process
 
-    // File Operations
+    public static ILogger<EncryptionService>? Logger { get; set; }
+
     public class OperationResult
     {
         public bool Success { get; set; }
@@ -37,6 +38,7 @@ public class EncryptionService
         }
         catch (Exception ex)
         {
+            Logger?.LogError(ex, "Encryption failed for file {FileName}", fileName);
             result.Success = false;
             result.Message = ex.Message;
         }
@@ -65,6 +67,7 @@ public class EncryptionService
         }
         catch (Exception ex)
         {
+            Logger?.LogError(ex, "Decryption failed for file {FileName}", fileName);
             result.Success = false;
             result.Message = ex.Message;
         }
