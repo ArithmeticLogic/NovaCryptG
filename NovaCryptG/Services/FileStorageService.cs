@@ -67,6 +67,7 @@ public class FileStorageService
                 _logger.LogInformation("Loaded file {FileName}", fileName);
                 return new FileResult { Success = true, Content = content };
             }
+
             return new FileResult { Success = false, Message = "File not found." };
         }
         catch (Exception ex)
@@ -87,6 +88,7 @@ public class FileStorageService
                 _logger.LogInformation("Deleted file {FileName}", fileName);
                 return new FileResult { Success = true, Message = $"Deleted {fileName}" };
             }
+
             return new FileResult { Success = false, Message = "File not found." };
         }
         catch (Exception ex)

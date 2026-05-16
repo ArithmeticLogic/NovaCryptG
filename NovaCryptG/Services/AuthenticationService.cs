@@ -4,7 +4,9 @@ using NovaCryptG.Models;
 
 namespace NovaCryptG.Services;
 
-public class AuthenticationService(IDbContextFactory<AppDbContext> contextFactory, ILogger<AuthenticationService> logger)
+public class AuthenticationService(
+    IDbContextFactory<AppDbContext> contextFactory,
+    ILogger<AuthenticationService> logger)
 {
     // Function to authenticate that a user's username and password combo is valid for login.
     public async Task<LoginCredential?> LoginAsync(string username, string password)
