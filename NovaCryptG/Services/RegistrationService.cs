@@ -35,6 +35,7 @@ public class RegistrationService(IDbContextFactory<AppDbContext> contextFactory,
             });
 
             await db.SaveChangesAsync();
+            logger.LogInformation("User {Username} has been registered successfully", username.ToLower());
             return (true, "User registered successfully.");
         }
         catch (Exception ex)

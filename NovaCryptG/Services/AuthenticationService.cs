@@ -27,6 +27,7 @@ public class AuthenticationService(IDbContextFactory<AppDbContext> contextFactor
                 return null;
             }
 
+            logger.LogInformation("User {Username} has logged in successfully", username);
             return user;
         }
         catch (Exception ex)
